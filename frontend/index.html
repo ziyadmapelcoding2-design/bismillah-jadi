@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Absensi Sekolah</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <section id="authPage" class="auth-page">
+      <div class="brand">
+        <span class="logo">AS</span>
+        <div>
+          <h1>Absensi Sekolah</h1>
+          <p>Masuk sebagai admin, guru, atau user/siswa.</p>
+        </div>
+      </div>
+
+      <div class="auth-box">
+        <div class="tabs">
+          <button id="loginTab" class="tab active" type="button">Masuk</button>
+          <button id="registerTab" class="tab" type="button">Registrasi</button>
+        </div>
+
+        <form id="loginForm" class="form active">
+          <label>Role
+            <select id="loginRole" required>
+              <option value="admin">Admin</option>
+              <option value="guru">Guru</option>
+              <option value="user">User/Siswa</option>
+            </select>
+          </label>
+          <label>Username
+            <input id="loginUsername" type="text" required>
+          </label>
+          <label>Password
+            <input id="loginPassword" type="password" required>
+          </label>
+          <button class="primary-btn" type="submit">Masuk</button>
+          <p id="loginMessage" class="message"></p>
+        </form>
+
+        <form id="registerForm" class="form">
+          <label>Daftar Sebagai
+            <select id="registerRole" required>
+              <option value="user">User/Siswa</option>
+              <option value="guru">Guru</option>
+              <option value="admin">Admin</option>
+            </select>
+          </label>
+          <label>Nama Lengkap
+            <input id="registerName" type="text" required>
+          </label>
+          <label>Kelas
+            <input id="registerClass" type="text" placeholder="Isi kelas untuk siswa, contoh: 7A">
+          </label>
+          <label>Username
+            <input id="registerUsername" type="text" required>
+          </label>
+          <label>Password
+            <input id="registerPassword" type="password" required>
+          </label>
+          <button class="primary-btn" type="submit">Daftar</button>
+          <p id="registerMessage" class="message"></p>
+        </form>
+      </div>
+    </section>
+
+    <section id="dashboardPage" class="dashboard-page hidden">
+      <header class="topbar">
+        <div>
+          <p id="roleLabel" class="eyebrow">Panel</p>
+          <h2 id="dashboardTitle">Dashboard</h2>
+          <p id="welcomeText" class="muted"></p>
+        </div>
+        <button id="logoutBtn" class="secondary-btn" type="button">Keluar</button>
+      </header>
+
+      <section class="summary">
+        <div>
+          <span id="totalSiswa">0</span>
+          <p>Total Siswa</p>
+        </div>
+        <div>
+          <span id="totalHadir">0</span>
+          <p>Hadir</p>
+        </div>
+        <div>
+          <span id="totalTidakHadir">0</span>
+          <p>Tidak Hadir</p>
+        </div>
+      </section>
+
+      <section id="adminPanel" class="panel hidden">
+        <h3>Data Akun Terdaftar</h3>
+        <div id="userList" class="list"></div>
+      </section>
+
+      <section id="studentFormPanel" class="panel hidden">
+        <h3>Tambah Siswa</h3>
+        <form id="studentForm" class="student-form-row">
+          <input id="studentName" type="text" placeholder="Nama siswa" required>
+          <input id="studentClass" type="text" placeholder="Kelas" required>
+          <button class="primary-btn" type="submit">Tambah</button>
+        </form>
+      </section>
+
+      <section id="userPanel" class="panel hidden">
+        <h3>Absensi Saya</h3>
+        <p id="myStatus" class="muted"></p>
+        <div id="myAttendanceButtons" class="status-buttons"></div>
+      </section>
+
+      <section id="attendancePanel" class="panel">
+        <h3>Data Kehadiran Siswa</h3>
+        <div id="studentList" class="list"></div>
+      </section>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

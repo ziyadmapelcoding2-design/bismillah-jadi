@@ -1,0 +1,14 @@
+{
+  "users": [
+    {
+      "id": 1001,
+      "name": "Ziyad Al Azhar",
+      "username": "admin@school.id",
+      "password": "082361739885",
+      "role": "admin",
+      "className": "-",
+      "status": "Belum Absen"
+    }
+  ],
+  "students": []
+}
