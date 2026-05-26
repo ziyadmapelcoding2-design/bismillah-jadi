@@ -9,20 +9,22 @@ const statuses = ["Hadir", "Izin", "Sakit", "Alpa", "Belum Absen"];
 
 function readData() {
   try {
-    if (!fs.existsSync(dataPath)) {
-      // Jika file data.json belum ada di server, otomatis buatkan struktur dasarnya
+    // Memaksa path mengarah tepat ke file data.json di folder yang sama
+    const absolutePath = path.resolve(__dirname, "data.json");
+    if (!fs.existsSync(absolutePath)) {
       const defaultData = { users: [], students: [] };
-      fs.writeFileSync(dataPath, JSON.stringify(defaultData, null, 2));
+      fs.writeFileSync(absolutePath, JSON.stringify(defaultData, null, 2));
       return defaultData;
     }
-    return JSON.parse(fs.readFileSync(dataPath, "utf8"));
+    return JSON.parse(fs.readFileSync(absolutePath, "utf8"));
   } catch (error) {
     return { users: [], students: [] };
   }
 }
 
 function saveData(data) {
-  fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
+  const absolutePath = path.resolve(__dirname, "data.json");
+  fs.writeFileSync(absolutePath, JSON.stringify(data, null, 2));
 }
 
 function sendJson(response, statusCode, data) {
