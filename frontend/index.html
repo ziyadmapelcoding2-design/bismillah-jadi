@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Absensi Sekolah</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
   <main class="app">
@@ -13,29 +14,34 @@
         <span class="logo">AS</span>
         <div>
           <h1>Absensi Sekolah</h1>
-          <p>Masuk sebagai admin, guru, atau user/siswa.</p>
+          <p>Masuk sebagai admin, guru, atau siswa.</p>
         </div>
       </div>
 
       <div class="auth-box">
         <div class="tabs">
           <button id="loginTab" class="tab active" type="button">Masuk</button>
-          <button id="registerTab" class="tab" type="button">Registrasi</button>
+          <button id="registerTab" class="tab" type="button">Pendaftaran</button>
         </div>
 
         <form id="loginForm" class="form active">
           <label>Role
-            <select id="loginRole" required>
-              <option value="admin">Admin</option>
-              <option value="guru">Guru</option>
-              <option value="user">User/Siswa</option>
-            </select>
+            <div class="select-wrapper">
+              <select id="loginRole" required>
+                <option value="admin">Admin</option>
+                <option value="guru">Guru</option>
+                <option value="user">Murid</option>
+              </select>
+            </div>
           </label>
           <label>Username
             <input id="loginUsername" type="text" required>
           </label>
           <label>Password
-            <input id="loginPassword" type="password" required>
+            <div class="password-wrapper">
+              <input id="loginPassword" type="password" required>
+              <i id="toggleLoginPassword" class="fa-solid fa-eye"></i>
+            </div>
           </label>
           <button class="primary-btn" type="submit">Masuk</button>
           <p id="loginMessage" class="message"></p>
@@ -43,23 +49,28 @@
 
         <form id="registerForm" class="form">
           <label>Daftar Sebagai
-            <select id="registerRole" required>
-              <option value="user">User/Siswa</option>
-              <option value="guru">Guru</option>
-              <option value="admin">Admin</option>
-            </select>
+            <div class="select-wrapper">
+              <select id="registerRole" required>
+                <option value="user">Murid</option>
+                <option value="guru">Guru</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
           </label>
           <label>Nama Lengkap
             <input id="registerName" type="text" required>
           </label>
           <label>Kelas
-            <input id="registerClass" type="text" placeholder="Isi kelas untuk siswa, contoh: 7A">
+            <input id="registerClass" type="text" required>
           </label>
           <label>Username
             <input id="registerUsername" type="text" required>
           </label>
           <label>Password
-            <input id="registerPassword" type="password" required>
+            <div class="password-wrapper">
+              <input id="registerPassword" type="password" required>
+              <i id="toggleRegisterPassword" class="fa-solid fa-eye"></i>
+            </div>
           </label>
           <button class="primary-btn" type="submit">Daftar</button>
           <p id="registerMessage" class="message"></p>

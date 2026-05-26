@@ -292,6 +292,59 @@ select:focus {
   border-radius: 8px;
 }
 
+/* =======================================================
+    🎯 SOLUSI AKHIR: PENYELARASAN PANAH & MATA SECARA AMAN
+   ======================================================= */
+
+/* --- Bagian Dropdown Kustom --- */
+.select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.select-wrapper select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none; /* Sembunyikan panah bawaan windows yang mepet */
+  padding-right: 42px; 
+}
+
+/* Panah kustom ditaruh di container wrapper, dijamin lurus dengan mata */
+.select-wrapper::after {
+  content: "\f0d7"; 
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  position: absolute;
+  right: 19px; /* 👈 SAMA DENGAN JARAK MATA (LURUS VERTIKAL!) */
+  top: 50%;
+  transform: translateY(-50%);
+  color: #7f8c8d;
+  pointer-events: none;
+  font-size: 14px;
+}
+
+/* --- Bagian Password & Mata --- */
+.password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-wrapper input {
+  padding-right: 42px; 
+}
+
+.password-wrapper i {
+  position: absolute;
+  right: 15px; /* 👈 SAMA DENGAN JARAK PANAH DROPDOWN */
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #7f8c8d;
+  user-select: none;
+  font-size: 16px;
+  z-index: 10;
+}
+
 @media (max-width: 760px) {
   .app {
     padding: 18px;

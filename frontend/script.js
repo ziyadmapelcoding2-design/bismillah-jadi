@@ -68,7 +68,7 @@ function setDashboardByRole() {
   const roleText = {
     admin: "Panel Admin",
     guru: "Panel Guru",
-    user: "Panel User/Siswa"
+    user: "Panel Murid"
   };
 
   roleLabel.textContent = roleText[currentUser.role];
@@ -102,6 +102,21 @@ function showAuth() {
   dashboardPage.classList.add("hidden");
   loginForm.reset();
   registerForm.reset();
+  
+  // Reset tampilan icon mata kembali ke bentuk semula (tertutup/bulat) saat log out
+  const loginPasswordInput = document.getElementById('loginPassword');
+  const toggleLoginPassword = document.getElementById('toggleLoginPassword');
+  if (loginPasswordInput && toggleLoginPassword) {
+    loginPasswordInput.type = 'password';
+    toggleLoginPassword.className = 'fa-solid fa-eye';
+  }
+
+  const registerPasswordInput = document.getElementById('registerPassword');
+  const toggleRegisterPassword = document.getElementById('toggleRegisterPassword');
+  if (registerPasswordInput && toggleRegisterPassword) {
+    registerPasswordInput.type = 'password';
+    toggleRegisterPassword.className = 'fa-solid fa-eye';
+  }
 }
 
 function renderUsers() {
@@ -282,3 +297,33 @@ studentForm.addEventListener("submit", async (event) => {
 });
 
 logoutBtn.addEventListener("click", showAuth);
+
+
+// =======================================================
+// 👁️ KODE BARU: LOGIKA TOMBOL MATA (FONT AWESOME MODERN)
+// =======================================================
+
+function setupPasswordToggle(inputId, iconId) {
+  const passwordInput = document.getElementById(inputId);
+  const toggleIcon = document.getElementById(iconId);
+
+  if (passwordInput && toggleIcon) {
+    toggleIcon.addEventListener('click', function () {
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        // Ubah icon mata menjadi coret (slash)
+        this.classList.remove('fa-eye');
+        this.classList.add('fa-eye-slash');
+      } else {
+        passwordInput.type = 'password';
+        // Kembalikan icon mata menjadi biasa
+        this.classList.remove('fa-eye-slash');
+        this.classList.add('fa-eye');
+      }
+    });
+  }
+}
+
+// Menjalankan fungsi mata untuk kedua form (Masuk & Pendaftaran)
+setupPasswordToggle('loginPassword', 'toggleLoginPassword');
+setupPasswordToggle('registerPassword', 'toggleRegisterPassword');
