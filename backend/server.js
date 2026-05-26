@@ -1,31 +1,15 @@
 const http = require("http");
-const fs = require("fs");
-const path = require("path");
+const { URL } = require("url");
+const { createClient } = require("@supabase/supabase-js");
 
-const PORT = 3000;
-const dataPath = path.join(__dirname, "data.json");
+// ⚠️ MASUKKAN DATA URL DAN KEY SUPABASE KAMU DI SINI:
+const SUPABASE_URL = "https://duiatmcdksxdmpidvcjl.supabase.co"; // Alamat rumah database kamu
+const SUPABASE_KEY = "sb_publishable_IUlSndW5GW-bChhtG85gvA_D4Nh0ME-"; // Masukkan kunci sb_publishable_... kamu di sini
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
 const roles = ["admin", "guru", "user"];
 const statuses = ["Hadir", "Izin", "Sakit", "Alpa", "Belum Absen"];
-
-function readData() {
-  try {
-    // Memaksa path mengarah tepat ke file data.json di folder yang sama
-    const absolutePath = path.resolve(__dirname, "data.json");
-    if (!fs.existsSync(absolutePath)) {
-      const defaultData = { users: [], students: [] };
-      fs.writeFileSync(absolutePath, JSON.stringify(defaultData, null, 2));
-      return defaultData;
-    }
-    return JSON.parse(fs.readFileSync(absolutePath, "utf8"));
-  } catch (error) {
-    return { users: [], students: [] };
-  }
-}
-
-function saveData(data) {
-  const absolutePath = path.resolve(__dirname, "data.json");
-  fs.writeFileSync(absolutePath, JSON.stringify(data, null, 2));
-}
 
 function sendJson(response, statusCode, data) {
   response.writeHead(statusCode, {
@@ -40,33 +24,22 @@ function sendJson(response, statusCode, data) {
 function readBody(request) {
   return new Promise((resolve, reject) => {
     let body = "";
-
-    request.on("data", (chunk) => {
-      body += chunk.toString();
-    });
-
+    request.on("data", (chunk) => { body += chunk.toString(); });
     request.on("end", () => {
-      if (!body) {
-        resolve({});
-        return;
-      }
-
-      try {
-        resolve(JSON.parse(body));
-      } catch (error) {
-        reject(error);
-      }
+      if (!body) return resolve({});
+      try { resolve(JSON.parse(body)); } catch (error) { reject(error); }
     });
   });
 }
 
+// Menyesuaikan format keluaran user agar aman dan konsisten dengan frontend kamu
 function publicUser(user) {
   return {
     id: user.id,
     name: user.name,
     username: user.username,
     role: user.role,
-    className: user.className,
+    className: user.class_name, // Mengubah dari snake_case database ke camelCase frontend
     status: user.status
   };
 }
@@ -78,9 +51,9 @@ const server = http.createServer(async (request, response) => {
   }
 
   const url = new URL(request.url, `http://${request.headers.host}`);
-  const data = readData();
 
   try {
+    // 1. REGISTRASI USER/GURU
     if (request.method === "POST" && url.pathname === "/api/register") {
       const body = await readBody(request);
       const name = String(body.name || "").trim();
@@ -91,132 +64,156 @@ const server = http.createServer(async (request, response) => {
 
       // 🔒 KHUSUS ADMIN: Tolak total jika mendaftar sebagai admin lewat halaman registrasi
       if (role === "admin") {
-        sendJson(response, 403, { message: "Mendaftar sebagai admin ditolak" });
-        return;
+        return sendJson(response, 403, { message: "Mendaftar sebagai admin ditolak" });
       }
 
       if (!name || !username || !password || !roles.includes(role)) {
-        sendJson(response, 400, { message: "Data registrasi belum lengkap." });
-        return;
+        return sendJson(response, 400, { message: "Data registrasi belum lengkap." });
       }
 
-      if (data.users.some((user) => user.username === username)) {
-        sendJson(response, 409, { message: "Username sudah digunakan." });
-        return;
+      // Cek apakah username sudah ada di database Supabase
+      const { data: existingUser } = await supabase
+        .from("users")
+        .select("username")
+        .eq("username", username)
+        .maybeSingle();
+
+      if (existingUser) {
+        return sendJson(response, 409, { message: "Username sudah digunakan." });
       }
 
-      const user = {
-        id: Date.now(),
-        name,
-        username,
-        password,
-        role, // Guru dan User biasa tetap bisa mendaftar normal sesuai input frontend
-        className,
-        status: "Belum Absen"
-      };
+      // Simpan data user baru ke cloud Supabase
+      const { data: newUser, error } = await supabase
+        .from("users")
+        .insert([{ name, username, password, role, class_name: className }])
+        .select()
+        .single();
 
-      data.users.push(user);
-      saveData(data);
-      sendJson(response, 201, { message: "Registrasi berhasil.", user: publicUser(user) });
-      return;
+      if (error) throw error;
+
+      return sendJson(response, 201, { message: "Registrasi berhasil.", user: publicUser(newUser) });
     }
 
+    // 2. LOGIN USER / GURU / ADMIN
     if (request.method === "POST" && url.pathname === "/api/login") {
       const body = await readBody(request);
       const username = String(body.username || "").trim();
       const password = String(body.password || "").trim();
       const role = String(body.role || "").trim();
 
-      const user = data.users.find((item) => {
-        return item.username === username && item.password === password && item.role === role;
-      });
+      const { data: user } = await supabase
+        .from("users")
+        .select("*")
+        .eq("username", username)
+        .eq("password", password)
+        .eq("role", role)
+        .maybeSingle();
 
       if (!user) {
-        sendJson(response, 401, { message: "Username, password, atau role salah." });
-        return;
+        return sendJson(response, 401, { message: "Username, password, atau role salah." });
       }
 
-      sendJson(response, 200, { message: "Login berhasil.", user: publicUser(user) });
-      return;
+      return sendJson(response, 200, { message: "Login berhasil.", user: publicUser(user) });
     }
 
+    // 3. GET ALL USERS
     if (request.method === "GET" && url.pathname === "/api/users") {
-      sendJson(response, 200, data.users.map(publicUser));
-      return;
+      const { data: users } = await supabase.from("users").select("*");
+      return sendJson(response, 200, (users || []).map(publicUser));
     }
 
+    // 4. GET ALL STUDENTS
     if (request.method === "GET" && url.pathname === "/api/students") {
-      sendJson(response, 200, data.students);
-      return;
+      const { data: students } = await supabase.from("students").select("*");
+      
+      // Menyesuaikan format kembalian agar key kelas berupa className sesuai kebutuhan frontend
+      const formattedStudents = (students || []).map(student => ({
+        id: student.id,
+        name: student.name,
+        className: student.class_name,
+        status: student.status
+      }));
+
+      return sendJson(response, 200, formattedStudents);
     }
 
+    // 5. POST NEW STUDENT
     if (request.method === "POST" && url.pathname === "/api/students") {
       const body = await readBody(request);
       const name = String(body.name || "").trim();
       const className = String(body.className || "").trim();
 
       if (!name || !className) {
-        sendJson(response, 400, { message: "Nama siswa dan kelas wajib diisi." });
-        return;
+        return sendJson(response, 400, { message: "Nama siswa dan kelas wajib diisi." });
       }
 
-      const student = {
-        id: Date.now(),
-        name,
-        className,
-        status: "Belum Absen"
-      };
+      const { data: student, error } = await supabase
+        .from("students")
+        .insert([{ name, class_name: className }])
+        .select()
+        .single();
 
-      data.students.push(student);
-      saveData(data);
-      sendJson(response, 201, student);
-      return;
+      if (error) throw error;
+
+      return sendJson(response, 201, {
+        id: student.id,
+        name: student.name,
+        className: student.class_name,
+        status: student.status
+      });
     }
 
+    // 6. UPDATE STATUS STUDENT (PUT)
     if (request.method === "PUT" && url.pathname.startsWith("/api/students/")) {
       const id = Number(url.pathname.split("/")[3]);
       const body = await readBody(request);
       const status = String(body.status || "").trim();
 
       if (!statuses.includes(status)) {
-        sendJson(response, 400, { message: "Status absensi tidak valid." });
-        return;
+        return sendJson(response, 400, { message: "Status absensi tidak valid." });
       }
 
-      const student = data.students.find((item) => item.id === id);
+      const { data: student, error } = await supabase
+        .from("students")
+        .update({ status })
+        .eq("id", id)
+        .select()
+        .maybeSingle();
 
-      if (!student) {
-        sendJson(response, 404, { message: "Siswa tidak ditemukan." });
-        return;
+      if (error || !student) {
+        return sendJson(response, 404, { message: "Siswa tidak ditemukan." });
       }
 
-      student.status = status;
-      saveData(data);
-      sendJson(response, 200, student);
-      return;
+      return sendJson(response, 200, {
+        id: student.id,
+        name: student.name,
+        className: student.class_name,
+        status: student.status
+      });
     }
 
+    // 7. UPDATE STATUS USER (PUT)
     if (request.method === "PUT" && url.pathname.startsWith("/api/users/")) {
       const id = Number(url.pathname.split("/")[3]);
       const body = await readBody(request);
       const status = String(body.status || "").trim();
 
       if (!statuses.includes(status)) {
-        sendJson(response, 400, { message: "Status absensi tidak valid." });
-        return;
+        return sendJson(response, 400, { message: "Status absensi tidak valid." });
       }
 
-      const user = data.users.find((item) => item.id === id);
+      const { data: user, error } = await supabase
+        .from("users")
+        .update({ status })
+        .eq("id", id)
+        .select()
+        .maybeSingle();
 
-      if (!user) {
-        sendJson(response, 404, { message: "User tidak ditemukan." });
-        return;
+      if (error || !user) {
+        return sendJson(response, 404, { message: "User tidak ditemukan." });
       }
 
-      user.status = status;
-      saveData(data);
-      sendJson(response, 200, publicUser(user));
-      return;
+      return sendJson(response, 200, publicUser(user));
     }
 
     sendJson(response, 404, { message: "Halaman API tidak ditemukan." });
