@@ -223,9 +223,4 @@ const server = http.createServer(async (request, response) => {
   }
 });
 
-// KODE BARU (Mengikuti Port Dynamic dari Render):
-const ACTUAL_PORT = process.env.PORT || PORT;
-
-server.listen(ACTUAL_PORT, () => {
-  console.log(`Backend absensi berjalan di port ${ACTUAL_PORT}`);
-});
+module.exports = server;
