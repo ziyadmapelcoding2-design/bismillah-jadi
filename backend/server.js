@@ -8,7 +8,17 @@ const roles = ["admin", "guru", "user"];
 const statuses = ["Hadir", "Izin", "Sakit", "Alpa", "Belum Absen"];
 
 function readData() {
-  return JSON.parse(fs.readFileSync(dataPath, "utf8"));
+  try {
+    if (!fs.existsSync(dataPath)) {
+      // Jika file data.json belum ada di server, otomatis buatkan struktur dasarnya
+      const defaultData = { users: [], students: [] };
+      fs.writeFileSync(dataPath, JSON.stringify(defaultData, null, 2));
+      return defaultData;
+    }
+    return JSON.parse(fs.readFileSync(dataPath, "utf8"));
+  } catch (error) {
+    return { users: [], students: [] };
+  }
 }
 
 function saveData(data) {
@@ -213,6 +223,9 @@ const server = http.createServer(async (request, response) => {
   }
 });
 
-server.listen(PORT, () => {
-  console.log(`Backend absensi berjalan di http://localhost:${PORT}`);
+// KODE BARU (Mengikuti Port Dynamic dari Render):
+const ACTUAL_PORT = process.env.PORT || PORT;
+
+server.listen(ACTUAL_PORT, () => {
+  console.log(`Backend absensi berjalan di port ${ACTUAL_PORT}`);
 });

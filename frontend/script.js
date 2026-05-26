@@ -73,7 +73,7 @@ function setDashboardByRole() {
 
   roleLabel.textContent = roleText[currentUser.role];
   dashboardTitle.textContent = `Halo, ${currentUser.name}`;
-  welcomeText.textContent = `Login sebagai ${currentUser.role}.`;
+  welcomeText.textContent = `selamat menjalankan tugas sebagai ${currentUser.role}.`;
 
   adminPanel.classList.toggle("hidden", currentUser.role !== "admin");
   studentFormPanel.classList.toggle("hidden", currentUser.role === "user");

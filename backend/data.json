@@ -8,7 +8,23 @@
       "role": "admin",
       "className": "-",
       "status": "Belum Absen"
+    },
+    {
+      "id": 1779774055108,
+      "name": "Sepul",
+      "username": "sepul@school.id",
+      "password": "1",
+      "role": "guru",
+      "className": "1",
+      "status": "Belum Absen"
     }
   ],
-  "students": []
+  "students": [
+    {
+      "id": 1779776195631,
+      "name": "Popon",
+      "className": "1",
+      "status": "Hadir"
+    }
+  ]
 }
