@@ -8,7 +8,7 @@ const SUPABASE_KEY = "sb_publishable_IUlSndW5GW-bChhtG85gvA_D4Nh0ME-"; // Masukk
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const roles = ["admin", "guru", "user"];
+const roles = ["admin", "guru", "murid"];
 const statuses = ["Hadir", "Izin", "Sakit", "Alpa", "Belum Absen"];
 
 function sendJson(response, statusCode, data) {
@@ -59,7 +59,7 @@ const server = http.createServer(async (request, response) => {
       const name = String(body.name || "").trim();
       const username = String(body.username || "").trim();
       const password = String(body.password || "").trim();
-      const role = String(body.role || "user").trim();
+      const role = String(body.role || "murid").trim();
       const className = String(body.className || "-").trim() || "-";
 
       // 🔒 KHUSUS ADMIN: Tolak total jika mendaftar sebagai admin lewat halaman registrasi

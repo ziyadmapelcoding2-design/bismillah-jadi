@@ -65,6 +65,7 @@ async function loadUsers() {
 }
 
 function setDashboardByRole() {
+  // --- DI SINI KATA USER SUDAH DIUBAH MENJADI PANEL MURID ---
   const roleText = {
     admin: "Panel Admin",
     guru: "Panel Guru",
@@ -73,7 +74,10 @@ function setDashboardByRole() {
 
   roleLabel.textContent = roleText[currentUser.role];
   dashboardTitle.textContent = `Halo, ${currentUser.name}`;
-  welcomeText.textContent = `selamat menjalankan tugas sebagai ${currentUser.role}.`;
+  
+  // --- DI SINI TULISAN DI BAWAH HALO SUDAH DIUBAH MENJADI MURID ---
+  const displayRole = currentUser.role === "user" ? "murid" : currentUser.role;
+  welcomeText.textContent = `selamat menjalankan tugas sebagai ${displayRole}.`;
 
   adminPanel.classList.toggle("hidden", currentUser.role !== "admin");
   studentFormPanel.classList.toggle("hidden", currentUser.role === "user");
@@ -135,7 +139,7 @@ function renderUsers() {
         <p class="user-name">${user.name}</p>
         <p class="user-meta">@${user.username} - Kelas ${user.className} - Status ${user.status}</p>
       </div>
-      <span class="badge">${user.role}</span>
+      <span class="badge">${user.role === "user" ? "murid" : user.role}</span>
     `;
     userList.appendChild(card);
   });
