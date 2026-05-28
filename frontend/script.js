@@ -11,6 +11,7 @@ const authPage = document.getElementById("authPage");
 const dashboardPage = document.getElementById("dashboardPage");
 const logoutBtn = document.getElementById("logoutBtn");
 const studentForm = document.getElementById("studentForm");
+const guruForm = document.getElementById("guruForm"); // ✅ Ditambahkan untuk form guru baru
 const studentList = document.getElementById("studentList");
 const userList = document.getElementById("userList");
 const adminPanel = document.getElementById("adminPanel");
@@ -313,6 +314,38 @@ loginForm.addEventListener("submit", async (event) => {
     showDashboard();
   } catch (error) {
     loginMessage.textContent = error.message;
+  }
+});
+
+// EVENT LISTENER TAMBAH GURU (TERINTEGRASI ENDPOINT REGISTER SUPABASE)
+guruForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const name = document.getElementById("guruName").value.trim();
+  const className = document.getElementById("guruClass").value.trim();
+
+  // Otomatis membuat username unik dari nama guru + angka acak
+  const generatedUsername = name.toLowerCase().replace(/\s+/g, "") + "_" + Math.floor(100 + Math.random() * 900);
+  const defaultPassword = "gurubaru123";
+
+  try {
+    await requestApi("/register", {
+      method: "POST",
+      body: JSON.stringify({ 
+        name: name, 
+        username: generatedUsername, 
+        password: defaultPassword, 
+        role: "guru", 
+        className: className 
+      })
+    });
+
+    alert(`Berhasil menambah Guru!\n\nDetail Akun Login Guru:\nUsername: ${generatedUsername}\nPassword: ${defaultPassword}\n\nCatatan: Silakan berikan info ini ke guru terkait.`);
+    
+    guruForm.reset();
+    await loadDashboardData();
+  } catch (error) {
+    alert("Gagal menambahkan guru: " + error.message);
   }
 });
 
