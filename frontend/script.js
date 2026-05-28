@@ -54,9 +54,22 @@ async function requestApi(path, options = {}) {
   return data;
 }
 
-async function loadStudents() {
-  students = await requestApi("/students");
-  renderStudents();
+// ✅ SEKARANG DIBEDAKAN: Mengambil data berdasarkan role pengguna
+async function loadDashboardData() {
+  if (currentUser.role === "guru") {
+    // Jika Guru yang login, ambil semua data User/Akun untuk menyaring daftar Guru saja
+    const allUsers = await requestApi("/users");
+    students = allUsers.filter(user => user.role === "guru");
+    renderStudents("Data Kehadiran Guru");
+  } else if (currentUser.role === "user") {
+    // Jika Murid yang login, ambil data khusus tabel murid/siswa
+    students = await requestApi("/students");
+    renderStudents("Data Kehadiran Murid");
+  } else {
+    // Jika Admin yang login
+    students = await requestApi("/students");
+    renderStudents("Data Kehadiran Siswa");
+  }
 }
 
 async function loadUsers() {
@@ -77,13 +90,8 @@ function setDashboardByRole() {
   const displayRole = currentUser.role === "user" ? "murid" : currentUser.role;
   welcomeText.textContent = `selamat menjalankan tugas sebagai ${displayRole}.`;
 
-  // Tampilkan Panel Admin hanya jika role-nya adalah admin
   adminPanel.classList.toggle("hidden", currentUser.role !== "admin");
-  
-  // ✅ FIX LINGKARAN MERAH: Sembunyikan form input tambah siswa untuk GURU dan MURID
   studentFormPanel.classList.toggle("hidden", currentUser.role === "user" || currentUser.role === "guru");
-  
-  // ✅ FIX LINGKARAN MERAH: Tampilkan panel "Absensi Saya" (Absen Mandiri) untuk GURU dan MURID
   userPanel.classList.toggle("hidden", currentUser.role !== "user" && currentUser.role !== "guru");
   
   attendancePanel.classList.remove("hidden");
@@ -92,10 +100,9 @@ function setDashboardByRole() {
     loadUsers();
   }
 
-  // Jika user atau guru yang masuk, langsung render absensi mandiri dan load tabel bawah
   if (currentUser.role === "user" || currentUser.role === "guru") {
     renderMyAttendance();
-    loadStudents();
+    loadDashboardData();
   }
 }
 
@@ -103,7 +110,6 @@ function showDashboard() {
   authPage.classList.add("hidden");
   dashboardPage.classList.remove("hidden");
   setDashboardByRole();
-  loadStudents();
 }
 
 function showAuth() {
@@ -150,11 +156,18 @@ function renderUsers() {
   });
 }
 
-function renderStudents() {
+// ✅ Menerima parameter titleText agar judul tabel bisa berubah dinamis (Murid / Guru)
+function renderStudents(titleText = "Data Kehadiran murid") {
   studentList.innerHTML = "";
 
+  // Update judul card tabel secara dinamis sesuai siapa yang login
+  const tableTitle = document.querySelector("#attendancePanel h3");
+  if (tableTitle) {
+    tableTitle.textContent = titleText;
+  }
+
   if (students.length === 0) {
-    studentList.innerHTML = '<p class="empty-state">Belum ada data siswa.</p>';
+    studentList.innerHTML = `<p class="empty-state">Belum ada data.</p>`;
     updateSummary();
     return;
   }
@@ -171,8 +184,6 @@ function renderStudents() {
 
     card.appendChild(info);
 
-    // ✅ FIX LINGKARAN KUNING: Hanya Admin yang diberi akses tombol ubah status di tabel bawah.
-    // Guru dan Murid penampilannya bersih tanpa tombol-tombol ini lagi.
     if (currentUser.role === "admin") {
       const actions = document.createElement("div");
       actions.className = "status-buttons";
@@ -215,7 +226,7 @@ async function updateStudentStatus(id, status) {
     body: JSON.stringify({ status })
   });
 
-  await loadStudents();
+  await loadDashboardData();
 }
 
 async function updateMyStatus(status) {
@@ -225,7 +236,7 @@ async function updateMyStatus(status) {
   });
 
   renderMyAttendance();
-  await loadStudents(); // Memastikan tabel bawah langsung ikut ter-update realtime
+  await loadDashboardData(); // ✅ Kotak atas dan daftar bawah langsung ter-update realtime dengan data yang tepat
 
   if (currentUser.role === "admin") {
     await loadUsers();
@@ -233,13 +244,19 @@ async function updateMyStatus(status) {
 }
 
 function updateSummary() {
-  const totalSiswa = students.length;
-  const totalHadir = students.filter((student) => student.status === "Hadir").length;
-  const totalTidakHadir = students.filter((student) => {
-    return ["Izin", "Sakit", "Alpa"].includes(student.status);
+  const total = students.length;
+  const totalHadir = students.filter((item) => item.status === "Hadir").length;
+  const totalTidakHadir = students.filter((item) => {
+    return ["Izin", "Sakit", "Alpa"].includes(item.status);
   }).length;
 
-  document.getElementById("totalSiswa").textContent = totalSiswa;
+  // Mengubah teks label kotak berdasarkan role
+  const labelTotal = document.getElementById("totalSiswa").parentElement.querySelector("p:last-child");
+  if (labelTotal) {
+    labelTotal.textContent = currentUser.role === "guru" ? "Total Guru" : "Total Murid";
+  }
+
+  document.getElementById("totalSiswa").textContent = total;
   document.getElementById("totalHadir").textContent = totalHadir;
   document.getElementById("totalTidakHadir").textContent = totalTidakHadir;
 }
@@ -305,7 +322,7 @@ studentForm.addEventListener("submit", async (event) => {
   });
 
   studentForm.reset();
-  await loadStudents();
+  await loadDashboardData();
 });
 
 logoutBtn.addEventListener("click", showAuth);
