@@ -65,7 +65,6 @@ async function loadUsers() {
 }
 
 function setDashboardByRole() {
-  // --- DI SINI KATA USER SUDAH DIUBAH MENJADI PANEL MURID ---
   const roleText = {
     admin: "Panel Admin",
     guru: "Panel Guru",
@@ -75,24 +74,28 @@ function setDashboardByRole() {
   roleLabel.textContent = roleText[currentUser.role];
   dashboardTitle.textContent = `Halo, ${currentUser.name}`;
   
-  // --- DI SINI TULISAN DI BAWAH HALO SUDAH DIUBAH MENJADI MURID ---
   const displayRole = currentUser.role === "user" ? "murid" : currentUser.role;
   welcomeText.textContent = `selamat menjalankan tugas sebagai ${displayRole}.`;
 
+  // Tampilkan Panel Admin hanya jika role-nya adalah admin
   adminPanel.classList.toggle("hidden", currentUser.role !== "admin");
-  studentFormPanel.classList.toggle("hidden", currentUser.role === "user");
-  userPanel.classList.toggle("hidden", currentUser.role !== "user");
   
-  // Memastikan panel kehadiran siswa selalu terbuka dan tidak tersembunyi
+  // ✅ FIX LINGKARAN MERAH: Sembunyikan form input tambah siswa untuk GURU dan MURID
+  studentFormPanel.classList.toggle("hidden", currentUser.role === "user" || currentUser.role === "guru");
+  
+  // ✅ FIX LINGKARAN MERAH: Tampilkan panel "Absensi Saya" (Absen Mandiri) untuk GURU dan MURID
+  userPanel.classList.toggle("hidden", currentUser.role !== "user" && currentUser.role !== "guru");
+  
   attendancePanel.classList.remove("hidden");
 
   if (currentUser.role === "admin") {
     loadUsers();
   }
 
-  if (currentUser.role === "user") {
+  // Jika user atau guru yang masuk, langsung render absensi mandiri dan load tabel bawah
+  if (currentUser.role === "user" || currentUser.role === "guru") {
     renderMyAttendance();
-    loadStudents(); // ✅ MEMAKSA LAYAR MURID UNTUK LANGSUNG MENGAMBIL DATA ABSENSI SAAT MASUK
+    loadStudents();
   }
 }
 
@@ -110,7 +113,6 @@ function showAuth() {
   loginForm.reset();
   registerForm.reset();
   
-  // Reset tampilan icon mata kembali ke bentuk semula (tertutup/bulat) saat log out
   const loginPasswordInput = document.getElementById('loginPassword');
   const toggleLoginPassword = document.getElementById('toggleLoginPassword');
   if (loginPasswordInput && toggleLoginPassword) {
@@ -169,7 +171,9 @@ function renderStudents() {
 
     card.appendChild(info);
 
-    if (currentUser.role !== "user") {
+    // ✅ FIX LINGKARAN KUNING: Hanya Admin yang diberi akses tombol ubah status di tabel bawah.
+    // Guru dan Murid penampilannya bersih tanpa tombol-tombol ini lagi.
+    if (currentUser.role === "admin") {
       const actions = document.createElement("div");
       actions.className = "status-buttons";
 
@@ -221,7 +225,7 @@ async function updateMyStatus(status) {
   });
 
   renderMyAttendance();
-  await loadStudents(); // ✅ MEMASTIKAN TABEL DAFTAR SISWA DI BAWAH LANGSUNG TER-UPDATE REALTIME
+  await loadStudents(); // Memastikan tabel bawah langsung ikut ter-update realtime
 
   if (currentUser.role === "admin") {
     await loadUsers();
@@ -305,11 +309,6 @@ studentForm.addEventListener("submit", async (event) => {
 });
 
 logoutBtn.addEventListener("click", showAuth);
-
-
-// =======================================================
-// 👁️ LOGIKA TOMBOL MATA (FONT AWESOME MODERN)
-// =======================================================
 
 function setupPasswordToggle(inputId, iconId) {
   const passwordInput = document.getElementById(inputId);
