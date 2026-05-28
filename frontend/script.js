@@ -82,7 +82,9 @@ function setDashboardByRole() {
   adminPanel.classList.toggle("hidden", currentUser.role !== "admin");
   studentFormPanel.classList.toggle("hidden", currentUser.role === "user");
   userPanel.classList.toggle("hidden", currentUser.role !== "user");
-  attendancePanel.classList.toggle("hidden", false);
+  
+  // Memastikan panel kehadiran siswa selalu terbuka dan tidak tersembunyi
+  attendancePanel.classList.remove("hidden");
 
   if (currentUser.role === "admin") {
     loadUsers();
@@ -90,6 +92,7 @@ function setDashboardByRole() {
 
   if (currentUser.role === "user") {
     renderMyAttendance();
+    loadStudents(); // ✅ MEMAKSA LAYAR MURID UNTUK LANGSUNG MENGAMBIL DATA ABSENSI SAAT MASUK
   }
 }
 
