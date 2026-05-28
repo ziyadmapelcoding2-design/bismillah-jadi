@@ -218,6 +218,7 @@ async function updateMyStatus(status) {
   });
 
   renderMyAttendance();
+  await loadStudents(); // ✅ MEMASTIKAN TABEL DAFTAR SISWA DI BAWAH LANGSUNG TER-UPDATE REALTIME
 
   if (currentUser.role === "admin") {
     await loadUsers();
@@ -304,7 +305,7 @@ logoutBtn.addEventListener("click", showAuth);
 
 
 // =======================================================
-// 👁️ KODE BARU: LOGIKA TOMBOL MATA (FONT AWESOME MODERN)
+// 👁️ LOGIKA TOMBOL MATA (FONT AWESOME MODERN)
 // =======================================================
 
 function setupPasswordToggle(inputId, iconId) {
@@ -315,12 +316,10 @@ function setupPasswordToggle(inputId, iconId) {
     toggleIcon.addEventListener('click', function () {
       if (passwordInput.type === 'password') {
         passwordInput.type = 'text';
-        // Ubah icon mata menjadi coret (slash)
         this.classList.remove('fa-eye');
         this.classList.add('fa-eye-slash');
       } else {
         passwordInput.type = 'password';
-        // Kembalikan icon mata menjadi biasa
         this.classList.remove('fa-eye-slash');
         this.classList.add('fa-eye');
       }
@@ -328,6 +327,5 @@ function setupPasswordToggle(inputId, iconId) {
   }
 }
 
-// Menjalankan fungsi mata untuk kedua form (Masuk & Pendaftaran)
 setupPasswordToggle('loginPassword', 'toggleLoginPassword');
 setupPasswordToggle('registerPassword', 'toggleRegisterPassword');

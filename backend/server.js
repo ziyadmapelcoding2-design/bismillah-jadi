@@ -8,7 +8,7 @@ const SUPABASE_KEY = "sb_publishable_IUlSndW5GW-bChhtG85gvA_D4Nh0ME-"; // Masukk
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const roles = ["admin", "guru", "user"];
+const roles = ["admin", "guru", "user"]; // Sudah diperbaiki dari "murid" menjadi "user"
 const statuses = ["Hadir", "Izin", "Sakit", "Alpa", "Belum Absen"];
 
 function sendJson(response, statusCode, data) {
@@ -59,7 +59,7 @@ const server = http.createServer(async (request, response) => {
       const name = String(body.name || "").trim();
       const username = String(body.username || "").trim();
       const password = String(body.password || "").trim();
-      const role = String(body.role || "murid").trim();
+      const role = String(body.role || "user").trim();
       const className = String(body.className || "-").trim() || "-";
 
       // 🔒 KHUSUS ADMIN: Tolak total jika mendaftar sebagai admin lewat halaman registrasi
@@ -91,7 +91,7 @@ const server = http.createServer(async (request, response) => {
           password, 
           role, 
           class_name: className, 
-          status: "Belum Absen" // ✅ Ditambahkan agar Supabase langsung mengembalikan data utuh tanpa memicu error
+          status: "Belum Absen"
         }])
         .select()
         .single();
@@ -199,7 +199,7 @@ const server = http.createServer(async (request, response) => {
       });
     }
 
-    // 7. UPDATE STATUS USER (PUT)
+    // 7. UPDATE STATUS USER (PUT) - OTOMATIS SINKRON KE TABEL DATA KEHADIRAN SISWA
     if (request.method === "PUT" && url.pathname.startsWith("/api/users/")) {
       const id = Number(url.pathname.split("/")[3]);
       const body = await readBody(request);
@@ -209,15 +209,38 @@ const server = http.createServer(async (request, response) => {
         return sendJson(response, 400, { message: "Status absensi tidak valid." });
       }
 
-      const { data: user, error } = await supabase
+      // Update status di tabel users online
+      const { data: user, error: userError } = await supabase
         .from("users")
         .update({ status })
         .eq("id", id)
         .select()
         .maybeSingle();
 
-      if (error || !user) {
+      if (userError || !user) {
         return sendJson(response, 404, { message: "User tidak ditemukan." });
+      }
+
+      // Logika Sinkronisasi Otomatis: Jika yang mengubah status adalah Murid ("user")
+      if (user.role === "user") {
+        const { data: existingStudent } = await supabase
+          .from("students")
+          .select("id")
+          .eq("name", user.name)
+          .maybeSingle();
+
+        if (existingStudent) {
+          // Jika nama murid sudah ada di tabel students, kita timpa statusnya
+          await supabase
+            .from("students")
+            .update({ status: user.status })
+            .eq("id", existingStudent.id);
+        } else {
+          // Jika belum ada sama sekali, kita buat baris baru otomatis di tabel students
+          await supabase
+            .from("students")
+            .insert([{ name: user.name, class_name: user.class_name, status: user.status }]);
+        }
       }
 
       return sendJson(response, 200, publicUser(user));
