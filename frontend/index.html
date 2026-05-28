@@ -88,13 +88,9 @@
         <button id="logoutBtn" class="secondary-btn" type="button">Keluar</button>
       </header>
 
-      <!-- ======================================================== -->
-      <!-- PANEL SUMMARY DUA BARIS (MURID & GURU) -->
-      <!-- ======================================================== -->
-      <section class="summary-container" style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 25px;">
+    <div id="summaryContainer" style="display: flex; flex-direction: column; gap: 18px; margin-bottom: 18px;">
         
-        <!-- Baris Khusus Ringkasan Murid -->
-        <div id="muridSummaryRow" class="summary" style="margin-bottom: 0;">
+        <section id="muridSummaryRow" class="summary" style="margin-bottom: 0;">
           <div>
             <span id="totalSiswa">0</span>
             <p>Total Murid</p>
@@ -107,23 +103,27 @@
             <span id="totalTidakHadir">0</span>
             <p>Tidak Hadir</p>
           </div>
-        </div>
+        </section>
 
-        <!-- Baris Khusus Ringkasan Guru -->
-        <div id="guruSummaryRow" class="summary" style="margin-bottom: 0;">
-          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0;">
+        <section id="guruSummaryRow" class="summary" style="margin-bottom: 0;">
+          <div>
             <span id="totalGuru">0</span>
             <p>Total Guru</p>
           </div>
-          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0;">
+          <div>
             <span id="totalGuruHadir">0</span>
             <p>Hadir</p>
           </div>
-          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0;">
+          <div>
             <span id="totalGuruTidakHadir">0</span>
             <p>Tidak Hadir</p>
           </div>
-        </div>
+        </section>
+
+      </div>
+        </section>
+
+      </div>
 
       </section>
       <!-- ======================================================== -->
