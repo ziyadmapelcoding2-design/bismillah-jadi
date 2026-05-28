@@ -64,7 +64,7 @@ async function loadDashboardData() {
 
   if (currentUser.role === "admin") {
     renderUsers();
-    renderStudents("Data Kehadiran Murid (Global)");
+    renderStudents("Data Kehadiran Murid");
   } else if (currentUser.role === "guru") {
     renderStudents("Data Kehadiran Guru");
   } else if (currentUser.role === "user") {
