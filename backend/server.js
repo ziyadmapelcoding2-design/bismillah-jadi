@@ -82,10 +82,17 @@ const server = http.createServer(async (request, response) => {
         return sendJson(response, 409, { message: "Username sudah digunakan." });
       }
 
-      // Simpan data user baru ke cloud Supabase
+      // Simpan data user baru ke cloud Supabase disertai status default "Belum Absen"
       const { data: newUser, error } = await supabase
         .from("users")
-        .insert([{ name, username, password, role, class_name: className }])
+        .insert([{ 
+          name, 
+          username, 
+          password, 
+          role, 
+          class_name: className, 
+          status: "Belum Absen" // ✅ Ditambahkan agar Supabase langsung mengembalikan data utuh tanpa memicu error
+        }])
         .select()
         .single();
 
