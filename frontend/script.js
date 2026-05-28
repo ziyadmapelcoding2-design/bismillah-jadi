@@ -79,20 +79,25 @@ function setDashboardByRole() {
   const displayRole = currentUser.role === "user" ? "murid" : currentUser.role;
   welcomeText.textContent = `selamat menjalankan tugas sebagai ${displayRole}.`;
 
+  // --- LOGIKA LAYAR BARU (GURU & MURID DISAMAKAN) ---
   adminPanel.classList.toggle("hidden", currentUser.role !== "admin");
-  studentFormPanel.classList.toggle("hidden", currentUser.role === "user");
-  userPanel.classList.toggle("hidden", currentUser.role !== "user");
   
-  // Memastikan panel kehadiran siswa selalu terbuka dan tidak tersembunyi
+  // Sembunyikan form tambah siswa untuk 'user' (murid) DAN 'guru'
+  studentFormPanel.classList.toggle("hidden", currentUser.role === "user" || currentUser.role === "guru");
+  
+  // Tampilkan panel absensi mandiri ("Absensi Saya") untuk 'user' (murid) DAN 'guru'
+  userPanel.classList.toggle("hidden", currentUser.role !== "user" && currentUser.role !== "guru");
+  
   attendancePanel.classList.remove("hidden");
 
   if (currentUser.role === "admin") {
     loadUsers();
   }
 
-  if (currentUser.role === "user") {
+  // Guru dan murid sekarang sama-sama memicu render absensi mandiri dan load tabel bawah
+  if (currentUser.role === "user" || currentUser.role === "guru") {
     renderMyAttendance();
-    loadStudents(); // ✅ MEMAKSA LAYAR MURID UNTUK LANGSUNG MENGAMBIL DATA ABSENSI SAAT MASUK
+    loadStudents(); 
   }
 }
 
@@ -110,7 +115,6 @@ function showAuth() {
   loginForm.reset();
   registerForm.reset();
   
-  // Reset tampilan icon mata kembali ke bentuk semula (tertutup/bulat) saat log out
   const loginPasswordInput = document.getElementById('loginPassword');
   const toggleLoginPassword = document.getElementById('toggleLoginPassword');
   if (loginPasswordInput && toggleLoginPassword) {
@@ -169,7 +173,10 @@ function renderStudents() {
 
     card.appendChild(info);
 
-    if (currentUser.role !== "user") {
+    // --- DI SINI DIUBAH cook ---
+    // Hanya Admin yang bisa melihat tombol manipulasi status di daftar bawah.
+    // Guru dan Murid tidak akan melihat tombol status ini lagi di baris tabel.
+    if (currentUser.role === "admin") {
       const actions = document.createElement("div");
       actions.className = "status-buttons";
 
@@ -305,11 +312,6 @@ studentForm.addEventListener("submit", async (event) => {
 });
 
 logoutBtn.addEventListener("click", showAuth);
-
-
-// =======================================================
-// 👁️ LOGIKA TOMBOL MATA (FONT AWESOME MODERN)
-// =======================================================
 
 function setupPasswordToggle(inputId, iconId) {
   const passwordInput = document.getElementById(inputId);
