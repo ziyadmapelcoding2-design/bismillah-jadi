@@ -24,8 +24,8 @@ const myStatus = document.getElementById("myStatus");
 const myAttendanceButtons = document.getElementById("myAttendanceButtons");
 
 let currentUser = null;
-let students = [];
-let users = [];
+let students = []; // Menyimpan data dari tabel students (Murid)
+let users = [];    // Menyimpan data dari semua akun terdaftar (User/Guru/Admin)
 
 function showTab(tabName) {
   const isLogin = tabName === "login";
@@ -54,27 +54,23 @@ async function requestApi(path, options = {}) {
   return data;
 }
 
-// ✅ SEKARANG DIBEDAKAN: Mengambil data berdasarkan role pengguna
+// Mengambil data terpusat agar kalkulasi Admin akurat
 async function loadDashboardData() {
-  if (currentUser.role === "guru") {
-    // Jika Guru yang login, ambil semua data User/Akun untuk menyaring daftar Guru saja
-    const allUsers = await requestApi("/users");
-    students = allUsers.filter(user => user.role === "guru");
+  // Ambil semua user untuk menghitung guru & menampilkan list admin
+  users = await requestApi("/users");
+  // Ambil data murid
+  students = await requestApi("/students");
+
+  if (currentUser.role === "admin") {
+    renderUsers();
+    renderStudents("Data Kehadiran Murid (Global)");
+  } else if (currentUser.role === "guru") {
     renderStudents("Data Kehadiran Guru");
   } else if (currentUser.role === "user") {
-    // Jika Murid yang login, ambil data khusus tabel murid/siswa
-    students = await requestApi("/students");
     renderStudents("Data Kehadiran Murid");
-  } else {
-    // Jika Admin yang login
-    students = await requestApi("/students");
-    renderStudents("Data Kehadiran Siswa");
   }
-}
 
-async function loadUsers() {
-  users = await requestApi("/users");
-  renderUsers();
+  updateSummary();
 }
 
 function setDashboardByRole() {
@@ -96,14 +92,8 @@ function setDashboardByRole() {
   
   attendancePanel.classList.remove("hidden");
 
-  if (currentUser.role === "admin") {
-    loadUsers();
-  }
-
-  if (currentUser.role === "user" || currentUser.role === "guru") {
-    renderMyAttendance();
-    loadDashboardData();
-  }
+  renderMyAttendance();
+  loadDashboardData();
 }
 
 function showDashboard() {
@@ -148,7 +138,7 @@ function renderUsers() {
     card.innerHTML = `
       <div>
         <p class="user-name">${user.name}</p>
-        <p class="user-meta">@${user.username} - Kelas ${user.className} - Status ${user.status}</p>
+        <p class="user-meta">@${user.username} - Kelas ${user.className} - Status ${user.status || 'Belum Absen'}</p>
       </div>
       <span class="badge">${user.role === "user" ? "murid" : user.role}</span>
     `;
@@ -156,30 +146,35 @@ function renderUsers() {
   });
 }
 
-// ✅ Menerima parameter titleText agar judul tabel bisa berubah dinamis (Murid / Guru)
 function renderStudents(titleText = "Data Kehadiran murid") {
   studentList.innerHTML = "";
 
-  // Update judul card tabel secara dinamis sesuai siapa yang login
   const tableTitle = document.querySelector("#attendancePanel h3");
   if (tableTitle) {
     tableTitle.textContent = titleText;
   }
 
-  if (students.length === 0) {
+  // Saring data apa yang mau ditampilkan di tabel bawah berdasarkan siapa yang login
+  let displayList = [];
+  if (currentUser.role === "guru") {
+    displayList = users.filter(u => u.role === "guru");
+  } else {
+    displayList = students;
+  }
+
+  if (displayList.length === 0) {
     studentList.innerHTML = `<p class="empty-state">Belum ada data.</p>`;
-    updateSummary();
     return;
   }
 
-  students.forEach((student) => {
+  displayList.forEach((item) => {
     const card = document.createElement("div");
     card.className = "student-card";
 
     const info = document.createElement("div");
     info.innerHTML = `
-      <p class="student-name">${student.name}</p>
-      <p class="student-meta">Kelas ${student.className} - Status: ${student.status}</p>
+      <p class="student-name">${item.name}</p>
+      <p class="student-meta">Kelas ${item.className} - Status: ${item.status || 'Belum Absen'}</p>
     `;
 
     card.appendChild(info);
@@ -192,8 +187,8 @@ function renderStudents(titleText = "Data Kehadiran murid") {
         const button = document.createElement("button");
         button.type = "button";
         button.textContent = status;
-        button.classList.toggle("active", student.status === status);
-        button.addEventListener("click", () => updateStudentStatus(student.id, status));
+        button.classList.toggle("active", item.status === status);
+        button.addEventListener("click", () => updateStudentStatus(item.id, status));
         actions.appendChild(button);
       });
 
@@ -202,12 +197,12 @@ function renderStudents(titleText = "Data Kehadiran murid") {
 
     studentList.appendChild(card);
   });
-
-  updateSummary();
 }
 
 function renderMyAttendance() {
-  myStatus.textContent = `Nama: ${currentUser.name} | Kelas: ${currentUser.className} | Status: ${currentUser.status}`;
+  if (currentUser.role === "admin") return; // Admin tidak perlu absen mandiri
+  
+  myStatus.textContent = `Nama: ${currentUser.name} | Kelas: ${currentUser.className} | Status: ${currentUser.status || 'Belum Absen'}`;
   myAttendanceButtons.innerHTML = "";
 
   attendanceStatuses.forEach((status) => {
@@ -236,29 +231,31 @@ async function updateMyStatus(status) {
   });
 
   renderMyAttendance();
-  await loadDashboardData(); // ✅ Kotak atas dan daftar bawah langsung ter-update realtime dengan data yang tepat
-
-  if (currentUser.role === "admin") {
-    await loadUsers();
-  }
+  await loadDashboardData();
 }
 
+// ✅ REALTIME KALKULASI DUA BARIS KOTAK (MURID & GURU)
 function updateSummary() {
-  const total = students.length;
-  const totalHadir = students.filter((item) => item.status === "Hadir").length;
-  const totalTidakHadir = students.filter((item) => {
-    return ["Izin", "Sakit", "Alpa"].includes(item.status);
-  }).length;
+  // 1. Hitung khusus Murid (Siswa)
+  const mTotal = students.length;
+  const mHadir = students.filter(s => s.status === "Hadir").length;
+  const mTidakHadir = students.filter(s => ["Izin", "Sakit", "Alpa"].includes(s.status)).length;
 
-  // Mengubah teks label kotak berdasarkan role
-  const labelTotal = document.getElementById("totalSiswa").parentElement.querySelector("p:last-child");
-  if (labelTotal) {
-    labelTotal.textContent = currentUser.role === "guru" ? "Total Guru" : "Total Murid";
-  }
+  // 2. Hitung khusus Guru
+  const guruList = users.filter(u => u.role === "guru");
+  const gTotal = guruList.length;
+  const gHadir = guruList.filter(g => g.status === "Hadir").length;
+  const gTidakHadir = guruList.filter(g => ["Izin", "Sakit", "Alpa"].includes(g.status)).length;
 
-  document.getElementById("totalSiswa").textContent = total;
-  document.getElementById("totalHadir").textContent = totalHadir;
-  document.getElementById("totalTidakHadir").textContent = totalTidakHadir;
+  // Pasang ke Element Murid
+  if(document.getElementById("totalSiswa")) document.getElementById("totalSiswa").textContent = mTotal;
+  if(document.getElementById("totalHadir")) document.getElementById("totalHadir").textContent = mHadir;
+  if(document.getElementById("totalTidakHadir")) document.getElementById("totalTidakHadir").textContent = mTotal - mHadir; // disesuaikan agar akurat
+
+  // Pasang ke Element Guru
+  if(document.getElementById("totalGuru")) document.getElementById("totalGuru").textContent = gTotal;
+  if(document.getElementById("totalGuruHadir")) document.getElementById("totalGuruHadir").textContent = gHadir;
+  if(document.getElementById("totalGuruTidakHadir")) document.getElementById("totalGuruTidakHadir").textContent = gTidakHadir;
 }
 
 loginTab.addEventListener("click", () => showTab("login"));

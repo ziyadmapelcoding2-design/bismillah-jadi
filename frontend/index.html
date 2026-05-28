@@ -88,20 +88,45 @@
         <button id="logoutBtn" class="secondary-btn" type="button">Keluar</button>
       </header>
 
-      <section class="summary">
-        <div>
-          <span id="totalSiswa">0</span>
-          <p>Total Murid</p>
+      <!-- ======================================================== -->
+      <!-- PANEL SUMMARY DUA BARIS (MURID & GURU) -->
+      <!-- ======================================================== -->
+      <section class="summary-container" style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 25px;">
+        
+        <!-- Baris Khusus Ringkasan Murid -->
+        <div id="muridSummaryRow" class="summary" style="margin-bottom: 0;">
+          <div>
+            <span id="totalSiswa">0</span>
+            <p>Total Murid</p>
+          </div>
+          <div>
+            <span id="totalHadir">0</span>
+            <p>Hadir</p>
+          </div>
+          <div>
+            <span id="totalTidakHadir">0</span>
+            <p>Tidak Hadir</p>
+          </div>
         </div>
-        <div>
-          <span id="totalHadir">0</span>
-          <p>Hadir</p>
+
+        <!-- Baris Khusus Ringkasan Guru -->
+        <div id="guruSummaryRow" class="summary" style="margin-bottom: 0;">
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0;">
+            <span id="totalGuru">0</span>
+            <p>Total Guru</p>
+          </div>
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0;">
+            <span id="totalGuruHadir">0</span>
+            <p>Hadir</p>
+          </div>
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0;">
+            <span id="totalGuruTidakHadir">0</span>
+            <p>Tidak Hadir</p>
+          </div>
         </div>
-        <div>
-          <span id="totalTidakHadir">0</span>
-          <p>Tidak Hadir</p>
-        </div>
+
       </section>
+      <!-- ======================================================== -->
 
       <section id="adminPanel" class="panel hidden">
         <h3>Data Akun Terdaftar</h3>
