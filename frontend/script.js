@@ -260,12 +260,11 @@ function updateSummary() {
 
   if(document.getElementById("totalSiswa")) document.getElementById("totalSiswa").textContent = mTotal;
   if(document.getElementById("totalHadir")) document.getElementById("totalHadir").textContent = mHadir;
-  if(document.getElementById("totalTidakHadir")) document.getElementById("totalTotalSiswa") 
   if(document.getElementById("totalTidakHadir")) document.getElementById("totalTidakHadir").textContent = mTotal - mHadir;
 
   if(document.getElementById("totalGuru")) document.getElementById("totalGuru").textContent = gTotal;
   if(document.getElementById("totalGuruHadir")) document.getElementById("totalGuruHadir").textContent = gHadir;
-  if(document.getElementById("totalGuruTidakHadir")) document.getElementById("totalGuruTidakHadir").textContent = gTidakHadir;
+  if(document.getElementById("totalGuruTidakHadir")) document.getElementById("totalGuruTidakHadir").textContent = gTotal - gHadir;
 }
 
 loginTab.addEventListener("click", () => showTab("login"));
