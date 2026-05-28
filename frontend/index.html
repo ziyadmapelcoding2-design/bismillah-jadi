@@ -9,6 +9,7 @@
 </head>
 <body>
   <main class="app">
+    
     <section id="authPage" class="auth-page">
       <div class="brand">
         <span class="logo">AS</span>
@@ -34,8 +35,8 @@
               </select>
             </div>
           </label>
-          <label>Username
-            <input id="loginUsername" type="text" required>
+          <label>Username / Email
+            <input id="loginUsername" type="text" placeholder="nama@school.id" required>
           </label>
           <label>Password
             <div class="password-wrapper">
@@ -63,8 +64,8 @@
           <label>Kelas
             <input id="registerClass" type="text" required>
           </label>
-          <label>Username
-            <input id="registerUsername" type="text" required>
+          <label>Email Sekolah
+            <input id="registerUsername" type="text" placeholder="nama@school.id" required>
           </label>
           <label>Password
             <div class="password-wrapper">
@@ -145,7 +146,7 @@
             <button class="primary-btn" type="submit">Tambah</button>
           </form>
         </div>
-      </section>`
+      </section>
 
       <section id="userPanel" class="panel hidden">
         <h3>Absensi Saya</h3>
@@ -153,7 +154,7 @@
         <div id="myAttendanceButtons" class="status-buttons"></div>
       </section>
 
-  <section id="attendancePanel" class="hidden" style="background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; display: grid; gap: 18px;">
+      <section id="attendancePanel" class="hidden" style="background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; display: grid; gap: 18px;">
         
         <div id="guruAttendanceBox" class="panel" style="margin-bottom: 0 !important;">
           <h3 style="margin-bottom: 14px;">Data Kehadiran Guru</h3>

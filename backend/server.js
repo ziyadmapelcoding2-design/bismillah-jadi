@@ -2,9 +2,9 @@ const http = require("http");
 const { URL } = require("url");
 const { createClient } = require("@supabase/supabase-js");
 
-// ⚠️ MASUKKAN DATA URL DAN KEY SUPABASE KAMU DI SINI:
+// ⚠️ DATA URL DAN KEY SUPABASE KAMU:
 const SUPABASE_URL = "https://duiatmcdksxdmpidvcjl.supabase.co"; // Alamat rumah database kamu
-const SUPABASE_KEY = "sb_publishable_IUlSndW5GW-bChhtG85gvA_D4Nh0ME-"; // Masukkan kunci sb_publishable_... kamu di sini
+const SUPABASE_KEY = "sb_publishable_IUlSndW5GW-bChhtG85gvA_D4Nh0ME-"; // Menerima kunci sb_publishable_... kamu di sini
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -69,6 +69,11 @@ const server = http.createServer(async (request, response) => {
 
       if (!name || !username || !password || !roles.includes(role)) {
         return sendJson(response, 400, { message: "Data registrasi belum lengkap." });
+      }
+
+      // 🔒 VALIDASI DOMAIN EMAIL: Wajib diakhiri dengan @school.id
+      if (!username.endsWith("@school.id")) {
+        return sendJson(response, 400, { message: "Pendaftaran ditolak. Harus menggunakan email resmi sekolah (@school.id)" });
       }
 
       // Cek apakah username sudah ada di database Supabase

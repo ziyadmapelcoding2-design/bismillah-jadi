@@ -337,6 +337,13 @@ registerForm.addEventListener("submit", async (event) => {
   const username = document.getElementById("registerUsername").value.trim();
   const password = document.getElementById("registerPassword").value.trim();
 
+  // 🎯 VALIDASI FORMAT DOMAIN EMAIL MANDIRI
+  if (!username.endsWith("@school.id")) {
+    registerMessage.textContent = "Gagal: Harus menggunakan email resmi sekolah (@school.id)";
+    registerMessage.classList.remove("success");
+    return; // Stop eksekusi agar tidak menembak API
+  }
+
   try {
     await requestApi("/register", {
       method: "POST",
@@ -381,7 +388,8 @@ guruForm.addEventListener("submit", async (event) => {
   const name = document.getElementById("guruName").value.trim();
   const className = document.getElementById("guruClass").value.trim();
 
-  const generatedUsername = name.toLowerCase().replace(/\s+/g, "") + "_" + Math.floor(100 + Math.random() * 900);
+  // 🎯 OTOMATIS GENERATE USERNAME BERAKHIRAN @school.id AGAR BISA ADAPTASI DENGAN ATURAN BARU
+  const generatedUsername = name.toLowerCase().replace(/\s+/g, "") + "_" + Math.floor(100 + Math.random() * 900) + "@school.id";
   const defaultPassword = "gurubaru123";
 
   try {
