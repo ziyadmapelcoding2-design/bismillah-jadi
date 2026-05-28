@@ -8,7 +8,7 @@ const SUPABASE_KEY = "sb_publishable_IUlSndW5GW-bChhtG85gvA_D4Nh0ME-"; // Masukk
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const roles = ["admin", "guru", "murid"];
+const roles = ["admin", "guru", "user"];
 const statuses = ["Hadir", "Izin", "Sakit", "Alpa", "Belum Absen"];
 
 function sendJson(response, statusCode, data) {
