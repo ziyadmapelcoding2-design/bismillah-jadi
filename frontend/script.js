@@ -11,7 +11,7 @@ const authPage = document.getElementById("authPage");
 const dashboardPage = document.getElementById("dashboardPage");
 const logoutBtn = document.getElementById("logoutBtn");
 const studentForm = document.getElementById("studentForm");
-const guruForm = document.getElementById("guruForm"); // ✅ Ditambahkan untuk form guru baru
+const guruForm = document.getElementById("guruForm"); // Form guru baru
 const studentList = document.getElementById("studentList");
 const userList = document.getElementById("userList");
 const adminPanel = document.getElementById("adminPanel");
@@ -55,20 +55,37 @@ async function requestApi(path, options = {}) {
   return data;
 }
 
-// Mengambil data terpusat agar kalkulasi Admin akurat
+// Mengambil data terpusat dan mengatur pembagian 2 kotak absensi bertumpuk
 async function loadDashboardData() {
-  // Ambil semua user untuk menghitung guru & menampilkan list admin
   users = await requestApi("/users");
-  // Ambil data murid
   students = await requestApi("/students");
 
+  const guruBox = document.getElementById("guruAttendanceBox");
+  const studentBox = document.getElementById("studentAttendanceBox");
+  const studentTitle = document.getElementById("studentBoxTitle");
+
   if (currentUser.role === "admin") {
+    // Admin melihat kedua kotak bertumpuk (Guru di atas, Murid di bawah)
+    if (guruBox) guruBox.style.setProperty("display", "block", "important");
+    if (studentBox) studentBox.style.setProperty("display", "block", "important");
+    if (studentTitle) studentTitle.textContent = "Data Kehadiran Murid (Global)";
+    
     renderUsers();
-    renderStudents("Data Kehadiran Murid");
-  } else if (currentUser.role === "guru") {
-    renderStudents("Data Kehadiran Guru");
-  } else if (currentUser.role === "user") {
-    renderStudents("Data Kehadiran Murid");
+    renderGuruAttendance();    // Render kotak atas
+    renderStudentAttendance(); // Render kotak bawah
+  } 
+  else if (currentUser.role === "guru") {
+    // Guru hanya melihat kotak kehadiran sesama guru
+    if (guruBox) guruBox.style.setProperty("display", "block", "important");
+    if (studentBox) studentBox.style.setProperty("none", "important");
+    renderGuruAttendance();
+  } 
+  else if (currentUser.role === "user") {
+    // Murid hanya melihat kotak kehadiran sesama murid
+    if (guruBox) guruBox.style.setProperty("display", "none", "important");
+    if (studentBox) studentBox.style.setProperty("display", "block", "important");
+    if (studentTitle) studentTitle.textContent = "Data Kehadiran Murid";
+    renderStudentAttendance();
   }
 
   updateSummary();
@@ -162,36 +179,69 @@ function renderUsers() {
   });
 }
 
-function renderStudents(titleText = "Data Kehadiran murid") {
-  studentList.innerHTML = "";
+// FUNGSI RENDER KOTAK ATAS: DATA KEHADIRAN GURU
+function renderGuruAttendance() {
+  const container = document.getElementById("guruList");
+  if (!container) return;
+  container.innerHTML = "";
 
-  const tableTitle = document.querySelector("#attendancePanel h3");
-  if (tableTitle) {
-    tableTitle.textContent = titleText;
-  }
+  const guruList = users.filter(u => u.role === "guru");
 
-  let displayList = [];
-  if (currentUser.role === "guru") {
-    displayList = users.filter(u => u.role === "guru");
-  } else {
-    displayList = students;
-  }
-
-  if (displayList.length === 0) {
-    studentList.innerHTML = `<p class="empty-state">Belum ada data.</p>`;
+  if (guruList.length === 0) {
+    container.innerHTML = '<p class="empty-state">Belum ada data kehadiran guru.</p>';
     return;
   }
 
-  displayList.forEach((item) => {
+  guruList.forEach((item) => {
     const card = document.createElement("div");
     card.className = "student-card";
 
     const info = document.createElement("div");
     info.innerHTML = `
       <p class="student-name">${item.name}</p>
-      <p class="student-meta">Kelas ${item.className} - Status: ${item.status || 'Belum Absen'}</p>
+      <p class="student-meta">Kelas/Wali: ${item.className} - Status: ${item.status || 'Belum Absen'}</p>
     `;
+    card.appendChild(info);
 
+    if (currentUser.role === "admin") {
+      const actions = document.createElement("div");
+      actions.className = "status-buttons";
+
+      attendanceStatuses.forEach((status) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = status;
+        button.classList.toggle("active", item.status === status);
+        button.addEventListener("click", () => updateGuruStatusByAdmin(item.id, status));
+        actions.appendChild(button);
+      });
+      card.appendChild(actions);
+    }
+
+    container.appendChild(card);
+  });
+}
+
+// FUNGSI RENDER KOTAK BAWAH: DATA KEHADIRAN MURID
+function renderStudentAttendance() {
+  const container = document.getElementById("studentList");
+  if (!container) return;
+  container.innerHTML = "";
+
+  if (students.length === 0) {
+    container.innerHTML = '<p class="empty-state">Belum ada data kehadiran murid.</p>';
+    return;
+  }
+
+  students.forEach((item) => {
+    const card = document.createElement("div");
+    card.className = "student-card";
+
+    const info = document.createElement("div");
+    info.innerHTML = `
+      <p class="student-name">${item.name}</p>
+      <p class="student-meta">Kelas: ${item.className} - Status: ${item.status || 'Belum Absen'}</p>
+    `;
     card.appendChild(info);
 
     if (currentUser.role === "admin") {
@@ -206,11 +256,10 @@ function renderStudents(titleText = "Data Kehadiran murid") {
         button.addEventListener("click", () => updateStudentStatus(item.id, status));
         actions.appendChild(button);
       });
-
       card.appendChild(actions);
     }
 
-    studentList.appendChild(card);
+    container.appendChild(card);
   });
 }
 
@@ -239,6 +288,15 @@ async function updateStudentStatus(id, status) {
   await loadDashboardData();
 }
 
+async function updateGuruStatusByAdmin(id, status) {
+  await requestApi(`/users/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({ status })
+  });
+
+  await loadDashboardData();
+}
+
 async function updateMyStatus(status) {
   currentUser = await requestApi(`/users/${currentUser.id}`, {
     method: "PUT",
@@ -257,7 +315,6 @@ function updateSummary() {
   const guruList = users.filter(u => u.role === "guru");
   const gTotal = guruList.length;
   const gHadir = guruList.filter(g => g.status === "Hadir").length;
-  const gTidakHadir = guruList.filter(g => ["Izin", "Sakit", "Alpa"].includes(g.status)).length;
 
   if(document.getElementById("totalSiswa")) document.getElementById("totalSiswa").textContent = mTotal;
   if(document.getElementById("totalHadir")) document.getElementById("totalHadir").textContent = mHadir;
@@ -317,14 +374,13 @@ loginForm.addEventListener("submit", async (event) => {
   }
 });
 
-// EVENT LISTENER TAMBAH GURU (TERINTEGRASI ENDPOINT REGISTER SUPABASE)
+// EVENT LISTENER TAMBAH GURU
 guruForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const name = document.getElementById("guruName").value.trim();
   const className = document.getElementById("guruClass").value.trim();
 
-  // Otomatis membuat username unik dari nama guru + angka acak
   const generatedUsername = name.toLowerCase().replace(/\s+/g, "") + "_" + Math.floor(100 + Math.random() * 900);
   const defaultPassword = "gurubaru123";
 
