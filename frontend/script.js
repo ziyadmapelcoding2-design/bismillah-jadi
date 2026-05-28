@@ -92,6 +92,21 @@ function setDashboardByRole() {
   
   attendancePanel.classList.remove("hidden");
 
+  // Filter baris ringkasan di dashboard berdasarkan role
+  const muridRow = document.getElementById("muridSummaryRow");
+  const guruRow = document.getElementById("guruSummaryRow");
+
+  if (currentUser.role === "admin") {
+    if (muridRow) muridRow.style.setProperty("display", "grid", "important");
+    if (guruRow) guruRow.style.setProperty("display", "grid", "important");
+  } else if (currentUser.role === "guru") {
+    if (muridRow) muridRow.style.setProperty("display", "none", "important");
+    if (guruRow) guruRow.style.setProperty("display", "grid", "important");
+  } else if (currentUser.role === "user") {
+    if (muridRow) muridRow.style.setProperty("display", "grid", "important");
+    if (guruRow) guruRow.style.setProperty("display", "none", "important");
+  }
+
   renderMyAttendance();
   loadDashboardData();
 }
@@ -154,7 +169,6 @@ function renderStudents(titleText = "Data Kehadiran murid") {
     tableTitle.textContent = titleText;
   }
 
-  // Saring data apa yang mau ditampilkan di tabel bawah berdasarkan siapa yang login
   let displayList = [];
   if (currentUser.role === "guru") {
     displayList = users.filter(u => u.role === "guru");
@@ -200,7 +214,7 @@ function renderStudents(titleText = "Data Kehadiran murid") {
 }
 
 function renderMyAttendance() {
-  if (currentUser.role === "admin") return; // Admin tidak perlu absen mandiri
+  if (currentUser.role === "admin") return; 
   
   myStatus.textContent = `Nama: ${currentUser.name} | Kelas: ${currentUser.className} | Status: ${currentUser.status || 'Belum Absen'}`;
   myAttendanceButtons.innerHTML = "";
@@ -234,25 +248,21 @@ async function updateMyStatus(status) {
   await loadDashboardData();
 }
 
-// ✅ REALTIME KALKULASI DUA BARIS KOTAK (MURID & GURU)
+// REALTIME KALKULASI RINGKASAN
 function updateSummary() {
-  // 1. Hitung khusus Murid (Siswa)
   const mTotal = students.length;
   const mHadir = students.filter(s => s.status === "Hadir").length;
-  const mTidakHadir = students.filter(s => ["Izin", "Sakit", "Alpa"].includes(s.status)).length;
 
-  // 2. Hitung khusus Guru
   const guruList = users.filter(u => u.role === "guru");
   const gTotal = guruList.length;
   const gHadir = guruList.filter(g => g.status === "Hadir").length;
   const gTidakHadir = guruList.filter(g => ["Izin", "Sakit", "Alpa"].includes(g.status)).length;
 
-  // Pasang ke Element Murid
   if(document.getElementById("totalSiswa")) document.getElementById("totalSiswa").textContent = mTotal;
   if(document.getElementById("totalHadir")) document.getElementById("totalHadir").textContent = mHadir;
-  if(document.getElementById("totalTidakHadir")) document.getElementById("totalTidakHadir").textContent = mTotal - mHadir; // disesuaikan agar akurat
+  if(document.getElementById("totalTidakHadir")) document.getElementById("totalTotalSiswa") 
+  if(document.getElementById("totalTidakHadir")) document.getElementById("totalTidakHadir").textContent = mTotal - mHadir;
 
-  // Pasang ke Element Guru
   if(document.getElementById("totalGuru")) document.getElementById("totalGuru").textContent = gTotal;
   if(document.getElementById("totalGuruHadir")) document.getElementById("totalGuruHadir").textContent = gHadir;
   if(document.getElementById("totalGuruTidakHadir")) document.getElementById("totalGuruTidakHadir").textContent = gTidakHadir;
