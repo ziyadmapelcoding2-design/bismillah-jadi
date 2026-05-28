@@ -68,7 +68,7 @@ async function loadDashboardData() {
     // Admin melihat kedua kotak bertumpuk (Guru di atas, Murid di bawah)
     if (guruBox) guruBox.style.setProperty("display", "block", "important");
     if (studentBox) studentBox.style.setProperty("display", "block", "important");
-    if (studentTitle) studentTitle.textContent = "Data Kehadiran Murid (Global)";
+    if (studentTitle) studentTitle.textContent = "Data Kehadiran Murid";
     
     renderUsers();
     renderGuruAttendance();    // Render kotak atas
@@ -199,7 +199,7 @@ function renderGuruAttendance() {
     const info = document.createElement("div");
     info.innerHTML = `
       <p class="student-name">${item.name}</p>
-      <p class="student-meta">Kelas/Wali: ${item.className} - Status: ${item.status || 'Belum Absen'}</p>
+      <p class="student-meta">Kelas: ${item.className} - Status: ${item.status || 'Belum Absen'}</p>
     `;
     card.appendChild(info);
 
