@@ -145,10 +145,19 @@ function renderUsersList() {
   allUsersGlobal.forEach((user) => {
     const card = document.createElement("div");
     card.className = "user-card";
+    
+    // 🛠️ PERBAIKAN: Cek kondisi jika role adalah admin, hilangkan teks Kelas dan Status
+    let metaText = "";
+    if (user.role === "admin") {
+      metaText = `@${user.username}`; // Khusus admin hanya menampilkan username
+    } else {
+      metaText = `@${user.username} - Kelas ${user.className} - Status ${user.status}`; // Guru & Murid tetap normal
+    }
+
     card.innerHTML = `
       <div>
         <p class="user-name">${user.name}</p>
-        <p class="user-meta">@${user.username} - Kelas ${user.className} - Status ${user.status}</p>
+        <p class="user-meta">${metaText}</p>
       </div>
       <span class="badge">${user.role === "user" ? "murid" : user.role}</span>
     `;
