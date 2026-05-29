@@ -3,12 +3,12 @@ const { URL } = require("url");
 const { createClient } = require("@supabase/supabase-js");
 
 // ⚠️ DATA URL DAN KEY SUPABASE KAMU:
-const SUPABASE_URL = "https://duiatmcdksxdmpidvcjl.supabase.co"; // Alamat rumah database kamu
-const SUPABASE_KEY = "sb_publishable_IUlSndW5GW-bChhtG85gvA_D4Nh0ME-"; // Menerima kunci sb_publishable_... kamu di sini
+const SUPABASE_URL = "https://duiatmcdksxdmpidvcjl.supabase.co"; 
+const SUPABASE_KEY = "sb_publishable_IUlSndW5GW-bChhtG85gvA_D4Nh0ME-"; 
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const roles = ["admin", "guru", "user"]; // Sudah diperbaiki dari "murid" menjadi "user"
+const roles = ["admin", "guru", "user"]; 
 const statuses = ["Hadir", "Izin", "Sakit", "Alpa", "Belum Absen"];
 
 function sendJson(response, statusCode, data) {
@@ -32,16 +32,22 @@ function readBody(request) {
   });
 }
 
-// Menyesuaikan format keluaran user agar aman dan konsisten dengan frontend kamu
-function publicUser(user) {
+function publicUser(user, activeRole) {
   return {
     id: user.id,
     name: user.name,
     username: user.username,
-    role: user.role,
-    className: user.class_name, // Mengubah dari snake_case database ke camelCase frontend
-    status: user.status
+    role: user.role || activeRole, 
+    className: user.class_name || "-",
+    status: user.status || "Belum Absen"
   };
+}
+
+// Menentukan nama tabel sesuai request kamu (Bahasa Indonesia tanpa 's')
+function getTableName(role) {
+  if (role === "admin") return "admin";
+  if (role === "guru") return "guru";
+  return "murid"; // Jika role bernilai "user" (murid)
 }
 
 const server = http.createServer(async (request, response) => {
@@ -53,7 +59,7 @@ const server = http.createServer(async (request, response) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
 
   try {
-    // 1. REGISTRASI USER/GURU
+    // 1. REGISTRASI GURU / MURID
     if (request.method === "POST" && url.pathname === "/api/register") {
       const body = await readBody(request);
       const name = String(body.name || "").trim();
@@ -62,23 +68,22 @@ const server = http.createServer(async (request, response) => {
       const role = String(body.role || "user").trim();
       const className = String(body.className || "-").trim() || "-";
 
-      // 🔒 KHUSUS ADMIN: Tolak total jika mendaftar sebagai admin lewat halaman registrasi
       if (role === "admin") {
-        return sendJson(response, 403, { message: "Mendaftar sebagai admin ditolak" });
+        return sendJson(response, 403, { message: "Mendaftar sebagai admin ditolak." });
       }
 
       if (!name || !username || !password || !roles.includes(role)) {
         return sendJson(response, 400, { message: "Data registrasi belum lengkap." });
       }
 
-      // 🔒 VALIDASI DOMAIN EMAIL: Wajib diakhiri dengan @school.id
       if (!username.endsWith("@school.id")) {
         return sendJson(response, 400, { message: "Pendaftaran ditolak. Harus menggunakan email resmi sekolah (@school.id)" });
       }
 
-      // Cek apakah username sudah ada di database Supabase
+      const targetTable = getTableName(role);
+
       const { data: existingUser } = await supabase
-        .from("users")
+        .from(targetTable)
         .select("username")
         .eq("username", username)
         .maybeSingle();
@@ -87,173 +92,97 @@ const server = http.createServer(async (request, response) => {
         return sendJson(response, 409, { message: "Username sudah digunakan." });
       }
 
-      // Simpan data user baru ke cloud Supabase disertai status default "Belum Absen"
       const { data: newUser, error } = await supabase
-        .from("users")
+        .from(targetTable)
         .insert([{ 
           name, 
           username, 
           password, 
-          role, 
           class_name: className, 
-          status: "Belum Absen"
+          status: "Belum Absen",
+          role: role
         }])
         .select()
         .single();
 
       if (error) throw error;
 
-      return sendJson(response, 201, { message: "Registrasi berhasil.", user: publicUser(newUser) });
+      return sendJson(response, 201, { message: "Registrasi berhasil.", user: publicUser(newUser, role) });
     }
 
-    // 2. LOGIN USER / GURU / ADMIN
+    // 2. LOGIN MULTI-TABEL
     if (request.method === "POST" && url.pathname === "/api/login") {
       const body = await readBody(request);
       const username = String(body.username || "").trim();
       const password = String(body.password || "").trim();
       const role = String(body.role || "").trim();
 
+      if (!roles.includes(role)) {
+        return sendJson(response, 400, { message: "Role tidak valid." });
+      }
+
+      const targetTable = getTableName(role);
+
       const { data: user } = await supabase
-        .from("users")
+        .from(targetTable)
         .select("*")
         .eq("username", username)
         .eq("password", password)
-        .eq("role", role)
         .maybeSingle();
 
       if (!user) {
         return sendJson(response, 401, { message: "Username, password, atau role salah." });
       }
 
-      return sendJson(response, 200, { message: "Login berhasil.", user: publicUser(user) });
+      return sendJson(response, 200, { message: "Login berhasil.", user: publicUser(user, role) });
     }
 
-    // 3. GET ALL USERS
+    // 3. GET ALL USERS (Menggabungkan isi tabel admin, guru, murid)
     if (request.method === "GET" && url.pathname === "/api/users") {
-      const { data: users } = await supabase.from("users").select("*");
-      return sendJson(response, 200, (users || []).map(publicUser));
-    }
+      const { data: dataAdmin } = await supabase.from("admin").select("*");
+      const { data: dataGuru } = await supabase.from("guru").select("*");
+      const { data: dataMurid } = await supabase.from("murid").select("*");
 
-    // 4. GET ALL STUDENTS
-    if (request.method === "GET" && url.pathname === "/api/students") {
-      const { data: students } = await supabase.from("students").select("*");
+      const mapAdmin = (dataAdmin || []).map(u => ({ ...u, role: "admin", class_name: "-" }));
+      const mapGuru = (dataGuru || []).map(u => ({ ...u, role: "guru" }));
+      const mapMurid = (dataMurid || []).map(u => ({ ...u, role: "user" }));
+
+      const combinedList = [...mapAdmin, ...mapGuru, ...mapMurid];
       
-      // Menyesuaikan format kembalian agar key kelas berupa className sesuai kebutuhan frontend
-      const formattedStudents = (students || []).map(student => ({
-        id: student.id,
-        name: student.name,
-        className: student.class_name,
-        status: student.status
-      }));
-
-      return sendJson(response, 200, formattedStudents);
+      return sendJson(response, 200, combinedList.map(u => publicUser(u, u.role)));
     }
 
-    // 5. POST NEW STUDENT
-    if (request.method === "POST" && url.pathname === "/api/students") {
-      const body = await readBody(request);
-      const name = String(body.name || "").trim();
-      const className = String(body.className || "").trim();
-
-      if (!name || !className) {
-        return sendJson(response, 400, { message: "Nama siswa dan kelas wajib diisi." });
-      }
-
-      const { data: student, error } = await supabase
-        .from("students")
-        .insert([{ name, class_name: className }])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      return sendJson(response, 201, {
-        id: student.id,
-        name: student.name,
-        className: student.class_name,
-        status: student.status
-      });
-    }
-
-    // 6. UPDATE STATUS STUDENT (PUT)
-    if (request.method === "PUT" && url.pathname.startsWith("/api/students/")) {
-      const id = Number(url.pathname.split("/")[3]);
-      const body = await readBody(request);
-      const status = String(body.status || "").trim();
-
-      if (!statuses.includes(status)) {
-        return sendJson(response, 400, { message: "Status absensi tidak valid." });
-      }
-
-      const { data: student, error } = await supabase
-        .from("students")
-        .update({ status })
-        .eq("id", id)
-        .select()
-        .maybeSingle();
-
-      if (error || !student) {
-        return sendJson(response, 404, { message: "Siswa tidak ditemukan." });
-      }
-
-      return sendJson(response, 200, {
-        id: student.id,
-        name: student.name,
-        className: student.class_name,
-        status: student.status
-      });
-    }
-
-    // 7. UPDATE STATUS USER (PUT) - OTOMATIS SINKRON KE TABEL DATA KEHADIRAN SISWA
+    // 4. UPDATE STATUS ABSENSI (PUT)
     if (request.method === "PUT" && url.pathname.startsWith("/api/users/")) {
       const id = Number(url.pathname.split("/")[3]);
       const body = await readBody(request);
       const status = String(body.status || "").trim();
+      const role = String(body.role || "user").trim();
 
       if (!statuses.includes(status)) {
         return sendJson(response, 400, { message: "Status absensi tidak valid." });
       }
 
-      // Update status di tabel users online
-      const { data: user, error: userError } = await supabase
-        .from("users")
+      const targetTable = getTableName(role);
+
+      const { data: updatedUser, error } = await supabase
+        .from(targetTable)
         .update({ status })
         .eq("id", id)
         .select()
         .maybeSingle();
 
-      if (userError || !user) {
-        return sendJson(response, 404, { message: "User tidak ditemukan." });
+      if (error || !updatedUser) {
+        return sendJson(response, 404, { message: "Data tidak ditemukan." });
       }
 
-      // Logika Sinkronisasi Otomatis: Jika yang mengubah status adalah Murid ("user")
-      if (user.role === "user") {
-        const { data: existingStudent } = await supabase
-          .from("students")
-          .select("id")
-          .eq("name", user.name)
-          .maybeSingle();
-
-        if (existingStudent) {
-          // Jika nama murid sudah ada di tabel students, kita timpa statusnya
-          await supabase
-            .from("students")
-            .update({ status: user.status })
-            .eq("id", existingStudent.id);
-        } else {
-          // Jika belum ada sama sekali, kita buat baris baru otomatis di tabel students
-          await supabase
-            .from("students")
-            .insert([{ name: user.name, class_name: user.class_name, status: user.status }]);
-        }
-      }
-
-      return sendJson(response, 200, publicUser(user));
+      return sendJson(response, 200, publicUser(updatedUser, role));
     }
 
     sendJson(response, 404, { message: "Halaman API tidak ditemukan." });
   } catch (error) {
-    sendJson(response, 500, { message: "Terjadi kesalahan server." });
+    console.error("Server Error:", error);
+    sendJson(response, 500, { message: "Terjadi kesalahan internal pada server." });
   }
 });
 
