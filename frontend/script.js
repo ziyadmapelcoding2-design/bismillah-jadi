@@ -146,12 +146,12 @@ function renderUsersList() {
     const card = document.createElement("div");
     card.className = "user-card";
     
-    // 🛠️ PERBAIKAN: Cek kondisi jika role adalah admin, hilangkan teks Kelas dan Status
+    // 🛠️ PERBAIKAN: Menghapus tanda @ di depan username/email untuk semua role
     let metaText = "";
     if (user.role === "admin") {
-      metaText = `@${user.username}`; // Khusus admin hanya menampilkan username
+      metaText = `${user.username}`; // Tanpa tanda @ di depan
     } else {
-      metaText = `@${user.username} - Kelas ${user.className} - Status ${user.status}`; // Guru & Murid tetap normal
+      metaText = `${user.username} - Kelas ${user.className} - Status ${user.status}`; // Tanpa tanda @ di depan
     }
 
     card.innerHTML = `
