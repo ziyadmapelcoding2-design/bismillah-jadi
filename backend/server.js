@@ -32,7 +32,7 @@ function readBody(request) {
   });
 }
 
-// 🛠️ PERBAIKAN 1: Logika penyaringan data publik berdasarkan role
+// 🛠️ PERBAIKAN UTAMA: Jika role admin, kirim string kosong "" agar tidak tertulis "null" atau "-" di web kamu
 function publicUser(user, activeRole) {
   const currentRole = user.role || activeRole;
   
@@ -41,9 +41,9 @@ function publicUser(user, activeRole) {
     name: user.name,
     username: user.username,
     role: currentRole, 
-    // Jika admin, potong atau kosongkan data kelas dan status absensinya
-    className: currentRole === "admin" ? null : (user.class_name || "-"),
-    status: currentRole === "admin" ? null : (user.status || "Belum Absen")
+    // Jika admin, potong teksnya menjadi kosong "" agar tidak dibaca "null" oleh frontend
+    className: currentRole === "admin" ? "" : (user.class_name || "-"),
+    status: currentRole === "admin" ? "" : (user.status || "Belum Absen")
   };
 }
 
@@ -147,7 +147,6 @@ const server = http.createServer(async (request, response) => {
       const { data: dataGuru } = await supabase.from("guru").select("*");
       const { data: dataMurid } = await supabase.from("murid").select("*");
 
-      // 🛠️ PERBAIKAN 2: Membersihkan paksaan mapping data kosong bawaan lama
       const mapAdmin = (dataAdmin || []).map(u => ({ ...u, role: "admin" }));
       const mapGuru = (dataGuru || []).map(u => ({ ...u, role: "guru" }));
       const mapMurid = (dataMurid || []).map(u => ({ ...u, role: "user" }));
