@@ -11,7 +11,7 @@ const authPage = document.getElementById("authPage");
 const dashboardPage = document.getElementById("dashboardPage");
 const logoutBtn = document.getElementById("logoutBtn");
 const studentForm = document.getElementById("studentForm");
-const guruForm = document.getElementById("guruForm"); // Form guru baru
+const guruForm = document.getElementById("guruForm"); 
 const studentList = document.getElementById("studentList");
 const userList = document.getElementById("userList");
 const adminPanel = document.getElementById("adminPanel");
@@ -25,8 +25,7 @@ const myStatus = document.getElementById("myStatus");
 const myAttendanceButtons = document.getElementById("myAttendanceButtons");
 
 let currentUser = null;
-let students = []; // Menyimpan data dari tabel students (Murid)
-let users = [];    // Menyimpan data dari semua akun terdaftar (User/Guru/Admin)
+let allUsersGlobal = []; // Menampung gabungan data dari server (admin + guru + murid)
 
 function showTab(tabName) {
   const isLogin = tabName === "login";
@@ -40,48 +39,41 @@ function showTab(tabName) {
 
 async function requestApi(path, options = {}) {
   const response = await fetch(`${API_URL}${path}`, {
-    headers: {
-      "Content-Type": "application/json"
-    },
+    headers: { "Content-Type": "application/json" },
     ...options
   });
-
   const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Permintaan gagal.");
-  }
-
+  if (!response.ok) throw new Error(data.message || "Permintaan gagal.");
   return data;
 }
 
-// Mengambil data terpusat dan mengatur pembagian 2 kotak absensi bertumpuk
+// 🔄 FUNGSI UTAMA AMBIL DATA: Mengambil data global terpusat dari backend
 async function loadDashboardData() {
-  users = await requestApi("/users");
-  students = await requestApi("/students");
+  // Mengambil data gabungan 3 tabel dari endpoint /api/users
+  allUsersGlobal = await requestApi("/users");
 
   const guruBox = document.getElementById("guruAttendanceBox");
   const studentBox = document.getElementById("studentAttendanceBox");
   const studentTitle = document.getElementById("studentBoxTitle");
 
+  // Atur visibilitas kotak data kehadiran secara ketat berdasarkan Role Login
   if (currentUser.role === "admin") {
-    // Admin melihat kedua kotak bertumpuk (Guru di atas, Murid di bawah)
     if (guruBox) guruBox.style.setProperty("display", "block", "important");
     if (studentBox) studentBox.style.setProperty("display", "block", "important");
     if (studentTitle) studentTitle.textContent = "Data Kehadiran Murid";
     
-    renderUsers();
-    renderGuruAttendance();    // Render kotak atas
-    renderStudentAttendance(); // Render kotak bawah
+    renderUsersList();         // List kelola akun admin
+    renderGuruAttendance();    // Kotak daftar guru
+    renderStudentAttendance(); // Kotak daftar murid
   } 
   else if (currentUser.role === "guru") {
-    // Guru hanya melihat kotak kehadiran sesama guru
+    // Guru HANYA melihat kotak daftar guru
     if (guruBox) guruBox.style.setProperty("display", "block", "important");
-    if (studentBox) studentBox.style.setProperty("none", "important");
+    if (studentBox) studentBox.style.setProperty("display", "none", "important");
     renderGuruAttendance();
   } 
   else if (currentUser.role === "user") {
-    // Murid hanya melihat kotak kehadiran sesama murid
+    // Murid HANYA melihat kotak daftar murid
     if (guruBox) guruBox.style.setProperty("display", "none", "important");
     if (studentBox) studentBox.style.setProperty("display", "block", "important");
     if (studentTitle) studentTitle.textContent = "Data Kehadiran Murid";
@@ -107,10 +99,9 @@ function setDashboardByRole() {
   adminPanel.classList.toggle("hidden", currentUser.role !== "admin");
   studentFormPanel.classList.toggle("hidden", currentUser.role === "user" || currentUser.role === "guru");
   userPanel.classList.toggle("hidden", currentUser.role !== "user" && currentUser.role !== "guru");
-  
   attendancePanel.classList.remove("hidden");
 
-  // Filter baris ringkasan di dashboard berdasarkan role
+  // Atur baris ringkasan angka di dashboard atas
   const muridRow = document.getElementById("muridSummaryRow");
   const guruRow = document.getElementById("guruSummaryRow");
 
@@ -141,37 +132,23 @@ function showAuth() {
   dashboardPage.classList.add("hidden");
   loginForm.reset();
   registerForm.reset();
-  
-  const loginPasswordInput = document.getElementById('loginPassword');
-  const toggleLoginPassword = document.getElementById('toggleLoginPassword');
-  if (loginPasswordInput && toggleLoginPassword) {
-    loginPasswordInput.type = 'password';
-    toggleLoginPassword.className = 'fa-solid fa-eye';
-  }
-
-  const registerPasswordInput = document.getElementById('registerPassword');
-  const toggleRegisterPassword = document.getElementById('toggleRegisterPassword');
-  if (registerPasswordInput && toggleRegisterPassword) {
-    registerPasswordInput.type = 'password';
-    toggleRegisterPassword.className = 'fa-solid fa-eye';
-  }
 }
 
-function renderUsers() {
+// Render data khusus list kelola akun di Panel Admin
+function renderUsersList() {
   userList.innerHTML = "";
-
-  if (users.length === 0) {
+  if (allUsersGlobal.length === 0) {
     userList.innerHTML = '<p class="empty-state">Belum ada akun terdaftar.</p>';
     return;
   }
 
-  users.forEach((user) => {
+  allUsersGlobal.forEach((user) => {
     const card = document.createElement("div");
     card.className = "user-card";
     card.innerHTML = `
       <div>
         <p class="user-name">${user.name}</p>
-        <p class="user-meta">@${user.username} - Kelas ${user.className} - Status ${user.status || 'Belum Absen'}</p>
+        <p class="user-meta">@${user.username} - Kelas ${user.className} - Status ${user.status}</p>
       </div>
       <span class="badge">${user.role === "user" ? "murid" : user.role}</span>
     `;
@@ -179,30 +156,31 @@ function renderUsers() {
   });
 }
 
-// FUNGSI RENDER KOTAK ATAS: DATA KEHADIRAN GURU
+// RENDER DAFTAR GURU (Hanya memfilter data yang rolenya 'guru')
 function renderGuruAttendance() {
   const container = document.getElementById("guruList");
   if (!container) return;
   container.innerHTML = "";
 
-  const guruList = users.filter(u => u.role === "guru");
+  const listGuru = allUsersGlobal.filter(u => u.role === "guru");
 
-  if (guruList.length === 0) {
+  if (listGuru.length === 0) {
     container.innerHTML = '<p class="empty-state">Belum ada data kehadiran guru.</p>';
     return;
   }
 
-  guruList.forEach((item) => {
+  listGuru.forEach((item) => {
     const card = document.createElement("div");
     card.className = "student-card";
 
     const info = document.createElement("div");
     info.innerHTML = `
       <p class="student-name">${item.name}</p>
-      <p class="student-meta">Kelas: ${item.className} - Status: ${item.status || 'Belum Absen'}</p>
+      <p class="student-meta">Kelas: ${item.className} - Status: ${item.status}</p>
     `;
     card.appendChild(info);
 
+    // Tombol aksi pengubah status jika yang login adalah Admin
     if (currentUser.role === "admin") {
       const actions = document.createElement("div");
       actions.className = "status-buttons";
@@ -212,35 +190,36 @@ function renderGuruAttendance() {
         button.type = "button";
         button.textContent = status;
         button.classList.toggle("active", item.status === status);
-        button.addEventListener("click", () => updateGuruStatusByAdmin(item.id, status));
+        button.addEventListener("click", () => updateStatusByAdmin(item.id, "guru", status));
         actions.appendChild(button);
       });
       card.appendChild(actions);
     }
-
     container.appendChild(card);
   });
 }
 
-// FUNGSI RENDER KOTAK BAWAH: DATA KEHADIRAN MURID
+// RENDER DAFTAR MURID (Hanya memfilter data yang rolenya 'user')
 function renderStudentAttendance() {
   const container = document.getElementById("studentList");
   if (!container) return;
   container.innerHTML = "";
 
-  if (students.length === 0) {
+  const listMurid = allUsersGlobal.filter(u => u.role === "user");
+
+  if (listMurid.length === 0) {
     container.innerHTML = '<p class="empty-state">Belum ada data kehadiran murid.</p>';
     return;
   }
 
-  students.forEach((item) => {
+  listMurid.forEach((item) => {
     const card = document.createElement("div");
     card.className = "student-card";
 
     const info = document.createElement("div");
     info.innerHTML = `
       <p class="student-name">${item.name}</p>
-      <p class="student-meta">Kelas: ${item.className} - Status: ${item.status || 'Belum Absen'}</p>
+      <p class="student-meta">Kelas: ${item.className} - Status: ${item.status}</p>
     `;
     card.appendChild(info);
 
@@ -253,12 +232,11 @@ function renderStudentAttendance() {
         button.type = "button";
         button.textContent = status;
         button.classList.toggle("active", item.status === status);
-        button.addEventListener("click", () => updateStudentStatus(item.id, status));
+        button.addEventListener("click", () => updateStatusByAdmin(item.id, "user", status));
         actions.appendChild(button);
       });
       card.appendChild(actions);
     }
-
     container.appendChild(card);
   });
 }
@@ -266,7 +244,8 @@ function renderStudentAttendance() {
 function renderMyAttendance() {
   if (currentUser.role === "admin") return; 
   
-  myStatus.textContent = `Nama: ${currentUser.name} | Kelas: ${currentUser.className} | Status: ${currentUser.status || 'Belum Absen'}`;
+  const displayRole = currentUser.role === "user" ? "Murid" : "Guru";
+  myStatus.textContent = `Nama: ${currentUser.name} | Kelas: ${currentUser.className} | Status: ${currentUser.status}`;
   myAttendanceButtons.innerHTML = "";
 
   attendanceStatuses.forEach((status) => {
@@ -279,42 +258,36 @@ function renderMyAttendance() {
   });
 }
 
-async function updateStudentStatus(id, status) {
-  await requestApi(`/students/${id}`, {
-    method: "PUT",
-    body: JSON.stringify({ status })
-  });
-
-  await loadDashboardData();
-}
-
-async function updateGuruStatusByAdmin(id, status) {
+// 🖋️ UPDATE STATUS OLEH ADMIN: Wajib mengirimkan role target agar backend tahu tabel mana yang dituju
+async function updateStatusByAdmin(id, role, status) {
   await requestApi(`/users/${id}`, {
     method: "PUT",
-    body: JSON.stringify({ status })
+    body: JSON.stringify({ status, role: role })
   });
-
   await loadDashboardData();
 }
 
+// 🖋️ ABSEN MANDIRI (GURU/MURID)
 async function updateMyStatus(status) {
-  currentUser = await requestApi(`/users/${currentUser.id}`, {
+  const data = await requestApi(`/users/${currentUser.id}`, {
     method: "PUT",
-    body: JSON.stringify({ status })
+    body: JSON.stringify({ status, role: currentUser.role })
   });
 
+  currentUser = data; // Perbarui session data lokal dengan data respons terbaru
   renderMyAttendance();
   await loadDashboardData();
 }
 
-// REALTIME KALKULASI RINGKASAN
+// RE-KALKULASI SUMMARY ANGKA BOX ATAS
 function updateSummary() {
-  const mTotal = students.length;
-  const mHadir = students.filter(s => s.status === "Hadir").length;
+  const listMurid = allUsersGlobal.filter(u => u.role === "user");
+  const mTotal = listMurid.length;
+  const mHadir = listMurid.filter(s => s.status === "Hadir").length;
 
-  const guruList = users.filter(u => u.role === "guru");
-  const gTotal = guruList.length;
-  const gHadir = guruList.filter(g => g.status === "Hadir").length;
+  const listGuru = allUsersGlobal.filter(u => u.role === "guru");
+  const gTotal = listGuru.length;
+  const gHadir = listGuru.filter(g => g.status === "Hadir").length;
 
   if(document.getElementById("totalSiswa")) document.getElementById("totalSiswa").textContent = mTotal;
   if(document.getElementById("totalHadir")) document.getElementById("totalHadir").textContent = mHadir;
@@ -330,18 +303,16 @@ registerTab.addEventListener("click", () => showTab("register"));
 
 registerForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-
   const role = document.getElementById("registerRole").value;
   const name = document.getElementById("registerName").value.trim();
   const className = document.getElementById("registerClass").value.trim() || "-";
   const username = document.getElementById("registerUsername").value.trim();
   const password = document.getElementById("registerPassword").value.trim();
 
-  // 🎯 VALIDASI FORMAT DOMAIN EMAIL MANDIRI
   if (!username.endsWith("@school.id")) {
     registerMessage.textContent = "Gagal: Harus menggunakan email resmi sekolah (@school.id)";
     registerMessage.classList.remove("success");
-    return; // Stop eksekusi agar tidak menembak API
+    return;
   }
 
   try {
@@ -349,7 +320,6 @@ registerForm.addEventListener("submit", async (event) => {
       method: "POST",
       body: JSON.stringify({ name, username, password, role, className })
     });
-
     registerMessage.textContent = "Registrasi berhasil. Silakan masuk.";
     registerMessage.classList.add("success");
     registerForm.reset();
@@ -362,7 +332,6 @@ registerForm.addEventListener("submit", async (event) => {
 
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-
   const role = document.getElementById("loginRole").value;
   const username = document.getElementById("loginUsername").value.trim();
   const password = document.getElementById("loginPassword").value.trim();
@@ -372,7 +341,6 @@ loginForm.addEventListener("submit", async (event) => {
       method: "POST",
       body: JSON.stringify({ username, password, role })
     });
-
     currentUser = data.user;
     loginMessage.textContent = "";
     showDashboard();
@@ -381,31 +349,21 @@ loginForm.addEventListener("submit", async (event) => {
   }
 });
 
-// EVENT LISTENER TAMBAH GURU
+// EVENT LISTENER TAMBAH GURU OLEH ADMIN
 guruForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-
   const name = document.getElementById("guruName").value.trim();
   const className = document.getElementById("guruClass").value.trim();
 
-  // 🎯 OTOMATIS GENERATE USERNAME BERAKHIRAN @school.id AGAR BISA ADAPTASI DENGAN ATURAN BARU
   const generatedUsername = name.toLowerCase().replace(/\s+/g, "") + "_" + Math.floor(100 + Math.random() * 900) + "@school.id";
   const defaultPassword = "gurubaru123";
 
   try {
     await requestApi("/register", {
       method: "POST",
-      body: JSON.stringify({ 
-        name: name, 
-        username: generatedUsername, 
-        password: defaultPassword, 
-        role: "guru", 
-        className: className 
-      })
+      body: JSON.stringify({ name, username: generatedUsername, password: defaultPassword, role: "guru", className })
     });
-
-    alert(`Berhasil menambah Guru!\n\nDetail Akun Login Guru:\nUsername: ${generatedUsername}\nPassword: ${defaultPassword}\n\nCatatan: Silakan berikan info ini ke guru terkait.`);
-    
+    alert(`Berhasil menambah Guru!\n\nDetail Akun Login Guru:\nUsername: ${generatedUsername}\nPassword: ${defaultPassword}`);
     guruForm.reset();
     await loadDashboardData();
   } catch (error) {
@@ -413,19 +371,26 @@ guruForm.addEventListener("submit", async (event) => {
   }
 });
 
+// EVENT LISTENER TAMBAH SISWA OLEH ADMIN
 studentForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-
   const name = document.getElementById("studentName").value.trim();
   const className = document.getElementById("studentClass").value.trim();
 
-  await requestApi("/students", {
-    method: "POST",
-    body: JSON.stringify({ name, className })
-  });
+  const generatedUsername = name.toLowerCase().replace(/\s+/g, "") + "_" + Math.floor(100 + Math.random() * 900) + "@school.id";
+  const defaultPassword = "siswabaru123";
 
-  studentForm.reset();
-  await loadDashboardData();
+  try {
+    await requestApi("/register", {
+      method: "POST",
+      body: JSON.stringify({ name, username: generatedUsername, password: defaultPassword, role: "user", className })
+    });
+    alert(`Berhasil mendaftarkan Murid!\n\nDetail Akun Login Murid:\nUsername: ${generatedUsername}\nPassword: ${defaultPassword}`);
+    studentForm.reset();
+    await loadDashboardData();
+  } catch (error) {
+    alert("Gagal menambahkan siswa: " + error.message);
+  }
 });
 
 logoutBtn.addEventListener("click", showAuth);
@@ -433,21 +398,17 @@ logoutBtn.addEventListener("click", showAuth);
 function setupPasswordToggle(inputId, iconId) {
   const passwordInput = document.getElementById(inputId);
   const toggleIcon = document.getElementById(iconId);
-
   if (passwordInput && toggleIcon) {
     toggleIcon.addEventListener('click', function () {
       if (passwordInput.type === 'password') {
         passwordInput.type = 'text';
-        this.classList.remove('fa-eye');
-        this.classList.add('fa-eye-slash');
+        this.className = 'fa-solid fa-eye-slash';
       } else {
         passwordInput.type = 'password';
-        this.classList.remove('fa-eye-slash');
-        this.classList.add('fa-eye');
+        this.className = 'fa-solid fa-eye';
       }
     });
   }
 }
-
 setupPasswordToggle('loginPassword', 'toggleLoginPassword');
 setupPasswordToggle('registerPassword', 'toggleRegisterPassword');
