@@ -10,12 +10,9 @@ const registerMessage = document.getElementById("registerMessage");
 const authPage = document.getElementById("authPage");
 const dashboardPage = document.getElementById("dashboardPage");
 const logoutBtn = document.getElementById("logoutBtn");
-const studentForm = document.getElementById("studentForm");
-const guruForm = document.getElementById("guruForm"); 
 const studentList = document.getElementById("studentList");
 const userList = document.getElementById("userList");
 const adminPanel = document.getElementById("adminPanel");
-const studentFormPanel = document.getElementById("studentFormPanel");
 const userPanel = document.getElementById("userPanel");
 const attendancePanel = document.getElementById("attendancePanel");
 const roleLabel = document.getElementById("roleLabel");
@@ -49,14 +46,12 @@ async function requestApi(path, options = {}) {
 
 // 🔄 FUNGSI UTAMA AMBIL DATA: Mengambil data global terpusat dari backend
 async function loadDashboardData() {
-  // Mengambil data gabungan 3 tabel dari endpoint /api/users
   allUsersGlobal = await requestApi("/users");
 
   const guruBox = document.getElementById("guruAttendanceBox");
   const studentBox = document.getElementById("studentAttendanceBox");
   const studentTitle = document.getElementById("studentBoxTitle");
 
-  // Atur visibilitas kotak data kehadiran secara ketat berdasarkan Role Login
   if (currentUser.role === "admin") {
     if (guruBox) guruBox.style.setProperty("display", "block", "important");
     if (studentBox) studentBox.style.setProperty("display", "block", "important");
@@ -67,13 +62,11 @@ async function loadDashboardData() {
     renderStudentAttendance(); // Kotak daftar murid
   } 
   else if (currentUser.role === "guru") {
-    // Guru HANYA melihat kotak daftar guru
     if (guruBox) guruBox.style.setProperty("display", "block", "important");
     if (studentBox) studentBox.style.setProperty("display", "none", "important");
     renderGuruAttendance();
   } 
   else if (currentUser.role === "user") {
-    // Murid HANYA melihat kotak daftar murid
     if (guruBox) guruBox.style.setProperty("display", "none", "important");
     if (studentBox) studentBox.style.setProperty("display", "block", "important");
     if (studentTitle) studentTitle.textContent = "Data Kehadiran Murid";
@@ -97,11 +90,9 @@ function setDashboardByRole() {
   welcomeText.textContent = `selamat menjalankan tugas sebagai ${displayRole}.`;
 
   adminPanel.classList.toggle("hidden", currentUser.role !== "admin");
-  studentFormPanel.classList.toggle("hidden", currentUser.role === "user" || currentUser.role === "guru");
   userPanel.classList.toggle("hidden", currentUser.role !== "user" && currentUser.role !== "guru");
   attendancePanel.classList.remove("hidden");
 
-  // Atur baris ringkasan angka di dashboard atas
   const muridRow = document.getElementById("muridSummaryRow");
   const guruRow = document.getElementById("guruSummaryRow");
 
@@ -146,12 +137,12 @@ function renderUsersList() {
     const card = document.createElement("div");
     card.className = "user-card";
     
-    // 🛠️ PERBAIKAN: Menghapus tanda @ di depan username/email untuk semua role
+    // Memastikan tanda @ bersih dan khusus admin tidak memunculkan kelas/status
     let metaText = "";
     if (user.role === "admin") {
-      metaText = `${user.username}`; // Tanpa tanda @ di depan
+      metaText = `${user.username}`; 
     } else {
-      metaText = `${user.username} - Kelas ${user.className} - Status ${user.status}`; // Tanpa tanda @ di depan
+      metaText = `${user.username} - Kelas ${user.className} - Status ${user.status}`; 
     }
 
     card.innerHTML = `
@@ -165,7 +156,7 @@ function renderUsersList() {
   });
 }
 
-// RENDER DAFTAR GURU (Hanya memfilter data yang rolenya 'guru')
+// RENDER DAFTAR GURU
 function renderGuruAttendance() {
   const container = document.getElementById("guruList");
   if (!container) return;
@@ -189,7 +180,6 @@ function renderGuruAttendance() {
     `;
     card.appendChild(info);
 
-    // Tombol aksi pengubah status jika yang login adalah Admin
     if (currentUser.role === "admin") {
       const actions = document.createElement("div");
       actions.className = "status-buttons";
@@ -208,7 +198,7 @@ function renderGuruAttendance() {
   });
 }
 
-// RENDER DAFTAR MURID (Hanya memfilter data yang rolenya 'user')
+// RENDER DAFTAR MURID
 function renderStudentAttendance() {
   const container = document.getElementById("studentList");
   if (!container) return;
@@ -253,7 +243,6 @@ function renderStudentAttendance() {
 function renderMyAttendance() {
   if (currentUser.role === "admin") return; 
   
-  const displayRole = currentUser.role === "user" ? "Murid" : "Guru";
   myStatus.textContent = `Nama: ${currentUser.name} | Kelas: ${currentUser.className} | Status: ${currentUser.status}`;
   myAttendanceButtons.innerHTML = "";
 
@@ -267,7 +256,6 @@ function renderMyAttendance() {
   });
 }
 
-// 🖋️ UPDATE STATUS OLEH ADMIN: Wajib mengirimkan role target agar backend tahu tabel mana yang dituju
 async function updateStatusByAdmin(id, role, status) {
   await requestApi(`/users/${id}`, {
     method: "PUT",
@@ -276,19 +264,17 @@ async function updateStatusByAdmin(id, role, status) {
   await loadDashboardData();
 }
 
-// 🖋️ ABSEN MANDIRI (GURU/MURID)
 async function updateMyStatus(status) {
   const data = await requestApi(`/users/${currentUser.id}`, {
     method: "PUT",
     body: JSON.stringify({ status, role: currentUser.role })
   });
 
-  currentUser = data; // Perbarui session data lokal dengan data respons terbaru
+  currentUser = data; 
   renderMyAttendance();
   await loadDashboardData();
 }
 
-// RE-KALKULASI SUMMARY ANGKA BOX ATAS
 function updateSummary() {
   const listMurid = allUsersGlobal.filter(u => u.role === "user");
   const mTotal = listMurid.length;
@@ -355,50 +341,6 @@ loginForm.addEventListener("submit", async (event) => {
     showDashboard();
   } catch (error) {
     loginMessage.textContent = error.message;
-  }
-});
-
-// EVENT LISTENER TAMBAH GURU OLEH ADMIN
-guruForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const name = document.getElementById("guruName").value.trim();
-  const className = document.getElementById("guruClass").value.trim();
-
-  const generatedUsername = name.toLowerCase().replace(/\s+/g, "") + "_" + Math.floor(100 + Math.random() * 900) + "@school.id";
-  const defaultPassword = "gurubaru123";
-
-  try {
-    await requestApi("/register", {
-      method: "POST",
-      body: JSON.stringify({ name, username: generatedUsername, password: defaultPassword, role: "guru", className })
-    });
-    alert(`Berhasil menambah Guru!\n\nDetail Akun Login Guru:\nUsername: ${generatedUsername}\nPassword: ${defaultPassword}`);
-    guruForm.reset();
-    await loadDashboardData();
-  } catch (error) {
-    alert("Gagal menambahkan guru: " + error.message);
-  }
-});
-
-// EVENT LISTENER TAMBAH SISWA OLEH ADMIN
-studentForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const name = document.getElementById("studentName").value.trim();
-  const className = document.getElementById("studentClass").value.trim();
-
-  const generatedUsername = name.toLowerCase().replace(/\s+/g, "") + "_" + Math.floor(100 + Math.random() * 900) + "@school.id";
-  const defaultPassword = "siswabaru123";
-
-  try {
-    await requestApi("/register", {
-      method: "POST",
-      body: JSON.stringify({ name, username: generatedUsername, password: defaultPassword, role: "user", className })
-    });
-    alert(`Berhasil mendaftarkan Murid!\n\nDetail Akun Login Murid:\nUsername: ${generatedUsername}\nPassword: ${defaultPassword}`);
-    studentForm.reset();
-    await loadDashboardData();
-  } catch (error) {
-    alert("Gagal menambahkan siswa: " + error.message);
   }
 });
 
