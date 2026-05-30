@@ -142,7 +142,7 @@ function renderUsersList() {
     if (user.role === "admin") {
       metaText = `${user.username}`; 
     } else {
-      metaText = `${user.username} - Kelas ${user.className} - Status ${user.status}`; 
+      metaText = `${user.username} - Kelas ${user.className || "-"} - Status ${user.status || "Belum Absen"}`; 
     }
 
     card.innerHTML = `
@@ -176,7 +176,7 @@ function renderGuruAttendance() {
     const info = document.createElement("div");
     info.innerHTML = `
       <p class="student-name">${item.name}</p>
-      <p class="student-meta">Kelas: ${item.className} - Status: ${item.status}</p>
+      <p class="student-meta">Kelas: ${item.className || "-"} - Status: ${item.status || "Belum Absen"}</p>
     `;
     card.appendChild(info);
 
@@ -218,7 +218,7 @@ function renderStudentAttendance() {
     const info = document.createElement("div");
     info.innerHTML = `
       <p class="student-name">${item.name}</p>
-      <p class="student-meta">Kelas: ${item.className} - Status: ${item.status}</p>
+      <p class="student-meta">Kelas: ${item.className || "-"} - Status: ${item.status || "Belum Absen"}</p>
     `;
     card.appendChild(info);
 
@@ -243,7 +243,7 @@ function renderStudentAttendance() {
 function renderMyAttendance() {
   if (currentUser.role === "admin") return; 
   
-  myStatus.textContent = `Nama: ${currentUser.name} | Kelas: ${currentUser.className} | Status: ${currentUser.status}`;
+  myStatus.textContent = `Nama: ${currentUser.name} | Kelas: ${currentUser.className || "-"} | Status: ${currentUser.status || "Belum Absen"}`;
   myAttendanceButtons.innerHTML = "";
 
   attendanceStatuses.forEach((status) => {
