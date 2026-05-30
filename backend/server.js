@@ -2,7 +2,7 @@ const http = require("http");
 const { URL } = require("url");
 const { createClient } = require("@supabase/supabase-js");
 
-// ⚠️ DATA URL DAN KEY SUPABASE KAMU:
+// ⚠️ DATA URL DAN KEY SUPABASE:
 const SUPABASE_URL = "https://duiatmcdksxdmpidvcjl.supabase.co"; 
 const SUPABASE_KEY = "sb_publishable_IUlSndW5GW-bChhtG85gvA_D4Nh0ME-"; 
 
@@ -32,7 +32,7 @@ function readBody(request) {
   });
 }
 
-// 🛠️ PERBAIKAN UTAMA: Jika role admin, kirim string kosong "" agar tidak tertulis "null" atau "-" di web kamu
+// 🛠️ SANITASI UTAMA: Jika role admin, kirim string kosong "" agar tidak tertulis "null" atau "-" di web kamu
 function publicUser(user, activeRole) {
   const currentRole = user.role || activeRole;
   
@@ -47,7 +47,7 @@ function publicUser(user, activeRole) {
   };
 }
 
-// Menentukan nama tabel sesuai request kamu (Bahasa Indonesia tanpa 's')
+// Menentukan nama tabel sesuai nama di Supabase
 function getTableName(role) {
   if (role === "admin") return "admin";
   if (role === "guru") return "guru";
@@ -55,6 +55,7 @@ function getTableName(role) {
 }
 
 const server = http.createServer(async (request, response) => {
+  // Handle CORS Preflight request
   if (request.method === "OPTIONS") {
     sendJson(response, 200, { message: "OK" });
     return;
@@ -72,6 +73,7 @@ const server = http.createServer(async (request, response) => {
       const role = String(body.role || "user").trim();
       const className = String(body.className || "-").trim() || "-";
 
+      // Blokir jika mencoba menembak pendaftaran sebagai admin lewat API tools (Postman/Fetch)
       if (role === "admin") {
         return sendJson(response, 403, { message: "Mendaftar sebagai admin ditolak." });
       }
